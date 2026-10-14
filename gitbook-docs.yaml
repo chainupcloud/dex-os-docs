@@ -1,0 +1,12 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: DEXOS 文档
+  structure:
+    - type: space
+      key: dexos-docs
+      title: DEXOS 文档
+      path: docs
+      default: true
+      content:
+        directory: ./content
+        language: zh
