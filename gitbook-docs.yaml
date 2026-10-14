@@ -9,7 +9,7 @@ site:
       default: true
       content:
         directory: ./content/zh
-        language: zh
+        language: en
     - type: space
       key: dexos-docs-en
       title: English
