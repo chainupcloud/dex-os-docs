@@ -8,4 +8,6 @@ GitBook OpenAPI 导入地址：
 
 https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.json
 
+正文中的 API 块固定引用文档仓库提交 `6a3f08872ba918fe24f0927fde0e4c08a9a4de79` 的规格，避免预览和回滚时读取不同版本。后续更新先提交规格，再在正文更新固定引用；上方 main 地址用于 GitBook 手动导入最新发布副本。
+
 当前规格的 servers 为相对路径 `/`，只适合与网关同源的 Scalar。GitBook 上的交互请求需要运营方确认公开 API 地址并配置服务器；不能把 GitBook 域名当作交易网关。页面导入、语言切换和交互调用仍需 GitBook 验收。
