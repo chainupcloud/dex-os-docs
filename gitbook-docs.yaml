@@ -1,6 +1,6 @@
 $schema: https://api.gitbook.com/gitbook-docs.yaml
 site:
-  title: Unibook 文档
+  title: Unibook Docs
   structure:
     - type: space
       key: dexos-docs
