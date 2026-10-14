@@ -1,6 +1,6 @@
-# DEXOS 文档
+# Unibook 文档
 
-DEXOS 支持现货和永续交易，并提供金库及 v1 API 接入能力。
+Unibook 支持现货和永续交易，并提供金库及 v1 API 接入能力。
 
 ## 交易用户
 

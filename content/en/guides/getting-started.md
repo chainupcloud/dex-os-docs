@@ -1,6 +1,6 @@
 # Getting started
 
-DEXOS supports perpetual futures and spot trading. They share an account, but use assets differently: spot trades are fully funded; perpetuals require margin and can incur funding payments and liquidation.
+Unibook supports perpetual futures and spot trading. They share an account, but use assets differently: spot trades are fully funded; perpetuals require margin and can incur funding payments and liquidation.
 
 ## Your first trade
 
