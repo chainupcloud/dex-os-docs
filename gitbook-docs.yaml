@@ -6,7 +6,6 @@ site:
       key: dexos-docs
       title: 中文
       path: zh
-      default: true
       content:
         directory: ./content/zh
         language: en
@@ -14,6 +13,7 @@ site:
       key: dexos-docs-en
       title: English
       path: en
+      default: true
       content:
         directory: ./content/en
         language: en
