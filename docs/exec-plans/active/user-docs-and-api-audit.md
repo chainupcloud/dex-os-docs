@@ -43,9 +43,9 @@
 - [x] 确认独立仓库，按 zerohacker666 SSH 别名克隆空仓库。
 - [x] 读取 #826 当前范围，明确业务修复归属。
 - [x] owner 确认本计划的目标、验收和风险边界。
-- [ ] 固定 dex-os 最新 main 基准，派只读审查 agent；验证路由与 schema、金额精度、身份、签名、nonce、回执、分页、限流、WS 恢复。
+- [x] 固定 dex-os 最新 main 基准，派只读审查 agent；验证路由与 schema、金额精度、身份、签名、nonce、回执、分页、限流、WS 恢复。
 - [ ] 汇总发现，与 #826 去重；区分发布阻塞和文档补充。
-- [ ] 建文档导航，编写用户指南及开发者指南；每个行为注明核实来源，未完成能力不写成可用。
+- [x] 建文档导航，编写用户指南及开发者指南；每个行为注明核实来源，未完成能力不写成可用。
 - [ ] 复用现有契约测试验证示例，必要的新检查使用 Go/TS 测试；仅纯文档变更不运行交易栈全量门禁。
 - [ ] 配置 GitBook Git Sync 和 OpenAPI，验证预览、链接、示例及更新同步。
 - [ ] 对照最新 main 复核差异，提交 PR 附验证结果和人工尾项，确认后发布。
@@ -54,3 +54,23 @@
 
 - 2026-10-14：owner 要求中英双语，内容分为 content/zh 与 content/en，GitBook 同一 section 下配置两个语言 space；保留中文 space key。
 - 2026-10-14：owner 指定已创建的 chainupcloud/dex-os-docs，要求使用与做市仓库相同的 zerohacker666 GitHub 账号方式克隆；已完成。仓库当前公开且为空。
+
+## 首轮审查结果（2026-10-14）
+
+审查基准从 `3c1ce22` 更新到 `0fece24ad5255d19b921af1bff8510f26a9d7666`，由独立克隆读取。未修改 dex-os / SDK，未跑 live、未部署。静态审查不代表页面或真实 HTTP 验收。
+
+| 发现 | 证据 | 归属与处置 |
+|---|---|---|
+| WS 金库订阅说明同时写支持和不支持 | openapi-v1.json 的 x-websocket.rules；v1.rs 的 vault 订阅解析 | #826 已知问题，不另改规格副本；指南按实现说明 |
+| vault、DEX 与部分写回执 schema 为空 object，required 不完整 | openapi-v1.json：vaults、dexes、leverage、transfer | vault / required 已知归 #826；DEX 与写回执作为补充发现 |
+| operation responses 无 429 | 所有 operation responses；v1.rs 限流中间件实际会返回 GatewayRateLimited | 新发现，指南补处理说明；上游修复后重新复制规格 |
+| clientOrderId 说明仍限于 ack=result | openapi-v1.json Order.clientOrderId；v1.rs order_by_client_id 支持执行历史映射 | 新发现，指南不沿用旧限制 |
+| v1 签名类型串未做权威自动对照 | scripts/check-openapi.mjs 只检查 planned POST 的扩展存在 | 新发现；应在上游加测试，文档仓库不复制签名常量 |
+| nowMs 共享信封说明漏 ScheduleCancel | openapi-v1.json；v1_write.rs ScheduleCancel / cancel-all | 新发现，签名指南按具体命令解释 |
+| 快速开始恢复指引漏 epoch / upper | OpenAPI info.description 与 x-websocket.rules / 实现对照 | 指南补完整流程 |
+| Scalar 默认 legacy 含 admin 路径 | web/docs.html 默认规格；v1 规格无 admin 路径 | 对外只引用 v1；默认入口问题留上游 |
+| 缺完整可运行签名示例 | 写操作没有标准 requestBody examples；x-eip712 是自定义扩展 | 不宣称 Scalar 可自动签名，SDK 示例需进一步验证 |
+
+GitBook 待验收：OpenAPI 块实际渲染、自定义签名扩展可见性、语言切换、公开 API 服务器地址及交互请求。dex-os 源仓库为 private，因此公开 v1 规格原样发布至本仓 api/openapi-v1.json，api/README.md 记录源提交；协议字段不手工翻译或修改。
+
+2026-10-14 实施：中英各 5 篇用户指南、5 篇开发者指南、8 篇 API 概览/分类页已编写。静态验证通过：21 个文件逐语言对应，全部本地链接存在，54 个 operation 每语言完整且不重复，规格与上游字节一致，curl 示例 Bash 语法通过。尚未验证签名成功路径、真实 HTTP、Scalar/GitBook 页面与交互请求；任务保留 active。
