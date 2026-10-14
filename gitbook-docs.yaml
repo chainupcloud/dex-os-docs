@@ -8,7 +8,7 @@ site:
       path: zh
       content:
         directory: ./content/zh
-        language: en
+        language: zh
     - type: space
       key: dexos-docs-en
       title: English
