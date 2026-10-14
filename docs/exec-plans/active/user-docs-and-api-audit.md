@@ -76,3 +76,5 @@ GitBook 待验收：OpenAPI 块实际渲染、自定义签名扩展可见性、�
 2026-10-14 实施：中英各 5 篇用户指南、5 篇开发者指南、8 篇 API 概览/分类页已编写。静态验证通过：21 个文件逐语言对应，全部本地链接存在，54 个 operation 每语言完整且不重复，规格与上游字节一致，curl 示例 Bash 语法通过。尚未验证签名成功路径、真实 HTTP、Scalar/GitBook 页面与交互请求；任务保留 active。
 
 2026-10-14 同步修复：GitHub status 证明 10d46a8 单语言成功、d5fc7af 增加 section 后出现站点更新 Internal server error，正文合入前已失败。官方套餐说明 section 需 Ultimate，而语言 variant 各套餐支持；未确认实际套餐。去掉不必要 section，将中文、英文直接作为顶层 spaces，保留稳定 key 和全部内容。官方 schema 兼容校验、唯一 key、唯一默认语言及目录检查通过，实际同步结果另验。
+
+2026-10-14 品牌更新：owner 要求对外文档使用 Unibook；站点标题、中英首页、导航与用户正文更新。技术标识符、签名域、HTTP 头、示例变量、仓库地址和原样发布的 OpenAPI 保留协议原值。

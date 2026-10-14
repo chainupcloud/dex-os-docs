@@ -1,6 +1,6 @@
 # Contents
 
-- [DEXOS](README.md)
+- [Unibook](README.md)
 
 ## User guides
 

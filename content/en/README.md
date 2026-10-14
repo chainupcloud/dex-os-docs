@@ -1,6 +1,6 @@
-# DEXOS Documentation
+# Unibook Documentation
 
-DEXOS supports spot and perpetual trading, vaults, and integration through the v1 API.
+Unibook supports spot and perpetual trading, vaults, and integration through the v1 API.
 
 ## Traders
 
