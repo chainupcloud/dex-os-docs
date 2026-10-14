@@ -2,11 +2,27 @@ $schema: https://api.gitbook.com/gitbook-docs.yaml
 site:
   title: DEXOS 文档
   structure:
-    - type: space
-      key: dexos-docs
+    - type: section
+      key: documentation
       title: DEXOS 文档
+      localizedTitle:
+        zh: DEXOS 文档
+        en: DEXOS Documentation
       path: docs
       default: true
-      content:
-        directory: ./content
-        language: zh
+      children:
+        - type: space
+          key: dexos-docs
+          title: 中文
+          path: zh
+          default: true
+          content:
+            directory: ./content/zh
+            language: zh
+        - type: space
+          key: dexos-docs-en
+          title: English
+          path: en
+          content:
+            directory: ./content/en
+            language: en

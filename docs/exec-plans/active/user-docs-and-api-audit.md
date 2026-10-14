@@ -4,7 +4,10 @@
 
 ## 目标与验收
 
-面向交易用户、金库参与者和 API 接入开发者建设中文文档，使用 GitBook 展示，GitHub 保存可审查的内容。
+面向交易用户、金库参与者和 API 接入开发者建设中英双语文档，使用 GitBook 展示，GitHub 保存可审查的内容。
+
+- 中文为默认入口，英文提供对应页面；两种语言保持相同文件路径、导航层级及业务语义，变更在同一 PR 更新。
+- API 路径、字段、错误码、签名类型和代码示例不翻译；两种语言共用同一份上游 OpenAPI，不分别维护两份接口契约。API Reference 的说明文本本地化须另行验证 GitBook 能力，不宣称已有双语自动翻译。
 
 - 独立审查固定 dex-os main 提交上的 v1 实现、OpenAPI、Scalar 和相关 SDK 契约；结论附源码或测试证据。
 - 所有发现区分已知问题、新问题、正在实现和未部署；已有问题关联 dex-liquidity #826，不重复开卡或实现。
@@ -49,4 +52,5 @@
 
 ## 变更记录
 
+- 2026-10-14：owner 要求中英双语，内容分为 content/zh 与 content/en，GitBook 同一 section 下配置两个语言 space；保留中文 space key。
 - 2026-10-14：owner 指定已创建的 chainupcloud/dex-os-docs，要求使用与做市仓库相同的 zerohacker666 GitHub 账号方式克隆；已完成。仓库当前公开且为空。
