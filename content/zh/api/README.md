@@ -4,9 +4,9 @@
 
 价格、数量和金额的缩放、签名以及回执处理请先阅读开发者指南。账户数据频道不代表保密访问。
 
-交互请求需要实际交易网关地址；本规格的相对服务器地址不能用于 GitBook 域名。签名写请求需要先在客户端生成签名。
+交互请求需要实际交易网关地址；公开网关地址发布前，本规格的服务器主机是占位域名 `api.dexos.invalid`。签名写请求需要先在客户端生成签名，统一通过 `POST /v1/commands` 提交。
 
-[OpenAPI JSON](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json)
+[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml)
 
 - [交易所信息](exchange.md)
 - [市场行情](market-data.md)
@@ -15,3 +15,4 @@
 - [订阅](subscriptions.md)
 - [交易](trading.md)
 - [资金](funds.md)
+- [安全](security.md)

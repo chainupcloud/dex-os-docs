@@ -1,6 +1,6 @@
 # REST API conventions
 
-v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json). This page explains integration behavior without duplicating the entire reference.
+v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
 
 ## Choose an endpoint
 
@@ -10,9 +10,9 @@ v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps
 | Markets and prices | `/v1/markets`, `/v1/prices`, `/v1/markets/{symbol}/book`, `/trades`, `/candles`, `/funding` (append the last three to the market path) |
 | Account state | `/v1/account`, `/v1/account/positions`, `/v1/account/orders` |
 | Fills and ledger | `/v1/account/fills`, `/v1/account/ledger`, `/v1/account/orders/history` |
-| Order writes | `/v1/orders`, `/v1/orders/cancel`, `/v1/orders/replace` |
-| Grants and funds | `/v1/account/agents/*`, `/v1/account/withdraw`, `/v1/account/transfer` |
-| Vaults | `/v1/vaults`, `/v1/vaults/{id}` and their action endpoints |
+| Signed writes (orders, grants, funds, vaults) | `POST /v1/commands` |
+| Deposit and withdrawal routes | `/v1/exchange/cctp/routes`, `/v1/exchange/cctp/quote`, `/v1/exchange/cctp/withdraw-quote` |
+| Vaults | `/v1/vaults`, `/v1/vaults/{id}` |
 | Request outcomes and backfill | `/v1/requests/{requestId}`, `/v1/events` |
 
 Account reads select `address` plus optional `subaccount`, or `vault` alone. Writes use `account` in the signed envelope; do not interchange these parameter names. `orderId` is a string. Do not coerce every numeric string into a JavaScript Number.

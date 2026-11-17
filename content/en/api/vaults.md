@@ -4,79 +4,46 @@
 
 My vault positions
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/account/vaults" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml" path="/v1/account/vaults" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml
 {% endopenapi %}
 
 ## GET /v1/vaults
 
 Vault list
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
-{% endopenapi %}
-
-## POST /v1/vaults
-
-Create vault (community vault)
-
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults" method="post" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml" path="/v1/vaults" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml
 {% endopenapi %}
 
 ## GET /v1/vaults/{id}
 
 Vault details
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
-{% endopenapi %}
-
-## GET /v1/vaults/{id}/nav
-
-Net asset value per share over time
-
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}/nav" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml" path="/v1/vaults/{id}" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml
 {% endopenapi %}
 
 ## GET /v1/vaults/{id}/depositors
 
 Depositors
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}/depositors" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml" path="/v1/vaults/{id}/depositors" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml
 {% endopenapi %}
 
-## POST /v1/vaults/{id}/deposit
+## GET /v1/vaults/{id}/nav
 
-Deposit (mint shares)
+Net asset value per share over time
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}/deposit" method="post" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml" path="/v1/vaults/{id}/nav" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml
 {% endopenapi %}
 
-## POST /v1/vaults/{id}/redeem
+## GET /v1/vaults/{id}/transitions/{source}/{ordinal}
 
-Redeem (burn shares)
+查询金库异步任务状态
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}/redeem" method="post" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml" path="/v1/vaults/{id}/transitions/{source}/{ordinal}" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml
 {% endopenapi %}
-
-## POST /v1/vaults/{id}/claim
-
-Claim a fresh vault (become its manager)
-
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}/claim" method="post" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
-{% endopenapi %}
-
-## POST /v1/vaults/{id}/config
-
-Change trading constraints / deposit cap (creator)
-
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json" path="/v1/vaults/{id}/config" method="post" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json
-{% endopenapi %}
-

@@ -28,3 +28,4 @@
 - [资金](api/funds.md)
 - [金库](api/vaults.md)
 - [订阅](api/subscriptions.md)
+- [安全](api/security.md)
