@@ -15,15 +15,13 @@ v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完�
 | 金库 | `/v1/vaults`、`/v1/vaults/{id}` |
 | 请求结论与补拉 | `/v1/requests/{requestId}`、`/v1/events` |
 
-读取账户时使用 `address` 和可选 `subaccount`，或单独使用 `vault`。写入使用签名信封的 `account`；两种参数名不要混用。订单编号 `orderId` 是字符串。不要将所有数值字符串强制转为 JavaScript Number。
+读取账户时使用 `address` 和可选 `subaccount`，或单独使用 `vault`，两种方式互斥。永续和现货市场可以同名：名称有歧义时加 `kind`（`perp` 或 `spot`），否则请求会被拒绝，服务端不会替你选。`orderId` 等 64 位数值是字符串。不要将所有数值字符串强制转为 JavaScript Number。
 
 ## 写请求的结果
 
-默认 `ack=result` 等待执行结果。单笔订单返回业务结论；批量返回 `items`，每项可能成功或被拒绝，需要逐项检查。`ack=sequenced` 只确认定序位置，不代表业务成功。`waitMs` 只适用于 `ack=result`，范围为 0–5000 毫秒；0 表示不等待。
+所有签名写入都通过 `POST /v1/commands` 提交（见[签名与授权](authentication.md)）。该接口不等待执行，没有 `ack` 或 `waitMs` 参数。HTTP 202 返回 `requestId`、`digest`、`seq` 和 `sub`，只证明已定序。把它们和原命令字节一起保存，用 `/v1/requests/{requestId}?digest=` 查询结论；业务结果（包括批量命令的每一项）都在回执里。网络断开也可能发生在服务已接收之后，应先对账，做法见[错误与恢复](errors-and-recovery.md)。
 
-HTTP 202 表示已定序但等待期间未取得结论。保存 `requestId`、`seq`、`sub` 和原始请求，查询 `/v1/requests/{requestId}`。网络断开也可能发生在服务已接收之后，应先对账。回执查询返回历史缺口时，不能把“无法证明执行”当作“没有执行”。
-
-`clientOrderId` 可用于客户端订单关联和重复检查。已定序但尚未取得结果的映射可在之后从执行历史解析；不要把最初的在途状态当作订单不存在。具体格式、重复提交语义和支持场景需查订单端点定义。
+签名订单可选带 `clientOrderId`：1–36 个字符，取自 `A-Z a-z 0-9 . _ : / -`。账户已经用过的值会在定序前被 409 `GatewayDuplicateClientOrderId` 拒绝。订单查询会返回它。TWAP 和止盈止损单没有 `clientOrderId`，也不能按它撤单或改单。
 
 ## 写后读的一致性
 
@@ -59,7 +57,7 @@ curl --fail-with-body --silent --show-error --get \
   --data-urlencode "epoch=$DEXOS_EPOCH"
 ```
 
-WebSocket 断线后可通过成交或事件接口补拉。按稳定事件 id 去重，并处理历史不可用的显式错误。按 symbol 过滤的事件页可能为空，但仍有 `next` 和 `hasMore`；不要遇到空页就停止。
+WebSocket 断线后可通过成交或事件接口补拉。按稳定事件 id 去重，遇到 400 `GatewayHistoryIncomplete` 时稍后原样重试。按 symbol 过滤的事件页可能为空，但仍有 `next` 和 `hasMore`；不要遇到空页就停止。
 
 ## 错误与限流
 
@@ -68,7 +66,7 @@ WebSocket 断线后可通过成交或事件接口补拉。按稳定事件 id 去
 | 状态 | 处理方向 |
 |---|---|
 | 400 | 修正参数、类型或格式 |
-| 401 | 检查签名与签名域 |
+| 401 | 检查在网关预检签名的接口上的签名 |
 | 403 | 检查所有权、API 钱包授权和操作范围 |
 | 404 | 核对账户、市场、订单或资源身份 |
 | 409 | 检查冲突详情与已有请求 |
@@ -76,6 +74,6 @@ WebSocket 断线后可通过成交或事件接口补拉。按稳定事件 id 去
 | 421 | 核对请求入口与节点角色 |
 | 422 | 处理业务拒因；不要把它当网络故障 |
 | 429 | 按 `retry-after` 等待，降低请求权重 |
-| 5xx / 连接异常 | 写入先查回执和对账，再决定下一步 |
+| 5xx / 连接异常 | 命令先弄清回执结论，再签新的请求 |
 
-限流分 IP 和写入账户两层，以固定 60 秒窗口累计权重。普通读权重 1，盘口与价格 2，历史类 5；写请求基础权重 1，批量再加 `floor(n / 40)`。实际预算可由运营方调整，以响应 `ratelimit`、`ratelimit-policy`、`x-ratelimit-account` 为准。429 的 `details.bucket` 区分 IP 和账户预算。
+限流分 IP 和写入账户两层，以固定 60 秒窗口累计权重。普通读权重 1，盘口与价格 2，历史类 5；命令基础权重 1，再加 `floor(n / 40)`，`n` 为命令里下单、撤单和改单的条数。实际预算可由运营方调整，以响应 `ratelimit`、`ratelimit-policy`、`x-ratelimit-account` 为准。429 的 `details.bucket` 为 `ip`、`account` 或 `unverified`。

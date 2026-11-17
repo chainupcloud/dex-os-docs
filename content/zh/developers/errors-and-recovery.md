@@ -1,52 +1,61 @@
 # 错误与恢复
 
-REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","details":{}}}`；这里的数值仅示意格式，实际以响应为准。`details` 可省略。用稳定的 `code` 和业务字段判断处理方式；保留 HTTP 状态、requestId 和响应正文用于排查。
+REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","details":{}}}`。这里的数字只示意结构，请以实际响应为准；`details` 可选。程序应按稳定的 `code` 和业务字段判断，同时保留 HTTP 状态、requestId 和响应正文用于排查。
 
-## HTTP 状态
+## HTTP 状态码
 
 | 状态 | 含义与处理 |
 | --- | --- |
-| 400 | 参数、精度、分页边界等不合法；修正请求。历史提示 `not yet complete` 时可保留原边界稍后重试 |
-| 401 | 签名检查失败；核对环境 domain、签名者、字段和整数缩放 |
-| 403 | 所有权或 API wallet 授权范围不符；检查授权及有效期，资金操作使用有权限的钱包 |
-| 404 | 对象不存在；回执查询须同时检查 `details.status` 和查询水位 |
-| 409 | 冲突或历史纪元变化；根据具体错误重新建立状态 |
-| 412 | 读副本尚未达到请求的最小 seq；保留一致性要求稍后再读 |
-| 421 | 请求到达错误节点；检查该环境的公开 API 入口 |
-| 422 | 业务拒绝；根据拒因修正操作，不能假设 nonce 未消耗 |
-| 429 | 请求额度耗尽；遵循 `retry-after`，降低频率 |
-| 5xx | 服务暂不可用或历史不完整；读可延后重试，写须先查原请求结果 |
+| 400 | 参数、精度、编码或分页边界无效，修正请求。`GatewayHistoryIncomplete` 表示历史尚未写完，稍后用相同边界重试。被 400 拒绝的命令没有定序 |
+| 401 | 在网关预检签名的接口上，签名预检未通过 |
+| 403 | 所有权、范围或 builder 预检拒绝；在这里被拒的命令没有定序 |
+| 404 | 对象不存在；回执查询以 404 返回状态 `Unknown`（见下文） |
+| 409 | 冲突：`clientOrderId` 重复、同一 actionId 被另一份不同 digest 的原件受理，或分页时账本纪元已变化 |
+| 412 | 只读副本未达到你要求的 seq；保持该一致性要求重试 |
+| 413 / 415 / 408 | 命令正文过大、不是 `application/json`，或读取正文超时；命令没有提交 |
+| 421 | 节点只读或不是 leader；把同一条命令发到 leader 入口 |
+| 422 | 定序前的业务拒绝（如 `GatewayCollateralTokenMismatch`），nonce 没有消耗 |
+| 429 | 请求预算耗尽；遵守 `retry-after` 并降低请求频率 |
+| 5xx | 服务不可用。对命令而言，503 可能表示结果未知：先弄清结论，再发新的请求 |
 
-## 202 和不确定的写结果
+## 命令的结论
 
-默认 `ack=result` 等待执行结果；超时可返回 HTTP 202、`status: "sequenced"` 和 `requestId`。这表示请求已定序，**不要重新下单**。显式 `ack=sequenced` 也只确认定序，不证明成交或业务成功。
-
-保存写响应的 `requestId`，查询：
+`POST /v1/commands` 在命令定序后返回 202。这只证明已定序，不证明授权通过或已经执行：`executionKnown` 为 false，`nonceConsumed` 为 null。保存原命令字节、`requestId`（即 actionId）和 `digest`，然后查询：
 
 ```text
-GET /v1/requests/<requestId>
+GET /v1/requests/<requestId>?digest=<digest>
 ```
 
-200 响应的 `status` 为 `pending`、`executed` 或 `rejected`。pending 时继续等待；最终结果可能包含 `nonceConsumed`、`reason`、`items`，应检查每项业务结论。批量操作 HTTP 200 不代表所有项成功。
+| 回执状态 | 含义 |
+| --- | --- |
+| `Accepted` | 账本已受理；结果可能尚未落定（`resultsPending`） |
+| `Executed` | 已执行。业务结果在 `events`，批量命令的逐项结论在 `items`，业务拒绝在 `businessRejected`；每一项都要检查 |
+| `AuthorizationRejected` | 账本在授权环节拒绝了这条命令；没有执行，nonce 没有消耗 |
+| `Unknown`（HTTP 404） | 读视图里没有这条命令的记录。单凭这一点不能证明它从未执行 |
+| HTTP 409 | 同一 actionId 被另一份不同 digest 的原件受理，例如改了有效期后重签的副本 |
 
-回执查询的非 2xx 情况需要单独处理：
+原样重发同一份命令字节是安全的：如果账本已受理，网关返回 200、第一次的回执和 `duplicate: true`，不会再次定序。改了有效期或 nonce 重新签名则是另一条命令，可能执行两次。
 
-- 404，`details.status: "not_found"`：在 `details.asOfSeq` 所示水位内未找到，不代表跨所有未来水位永久不存在。
-- 409，`details.status: "conflict"`：指定 nonce 被另一请求占用，检查 `details.conflictingRequest`，不要继续使用原 nonce。
-- 503，`details.status: "history_unavailable"`：历史有缺口，当前无法证明请求是否执行；不能据此重发。
+## 弄清未知结果
 
-提供成对的 `scope`、`nonce` 可检测 nonce 冲突。API wallet 请求还可提供签名时的 `commandHash`；参数须来自原请求，具体格式见 API Reference。网络超时没有拿到响应时，也不能假设写失败：应使用原始签名对应的 requestId/SDK 回执能力核对结果，不要创建新 nonce 的重复业务请求。
+网络超时、5xx 或 `Unknown` 回执都不能证明写入失败。命令过了 `validUntilMs` 之后就不会再被受理，据此可以得到确定结论：
 
-## 429 与限流
+1. 等到 `GET /v1/security/time` 给出的认证时间超过该命令的 `validUntilMs`。
+2. 用同一次时间响应里的 `hostLogIndex` 作为 `x-dexos-min-seq` 查询回执。返回 412 表示副本还没追上，稍后重试。
+3. `Executed` 表示已经执行，从回执读取结果；`Unknown` 或 `AuthorizationRejected` 表示这条命令没有执行、以后也不会执行，nonce 没有消耗。
 
-REST 使用固定 60 秒窗口，按请求权重计数。所有 `/v1/*` 请求计入 IP 额度；通过签名预检查的写请求还计入主钱包额度，子账户共用主钱包额度。
+确认之后再签替代命令。SDK 的 `Finalize` 实现了这一流程。
 
-读取 `ratelimit`、`ratelimit-policy`；到达钱包额度检查的写响应还含 `x-ratelimit-account`。429 返回 `retry-after`，并通过 `error.details.bucket` 区分 `ip` 或 `account`。按该值等待后再请求，不要并发密集重试。部署方可以调整额度，客户端不要把默认值当作固定服务承诺。
+## HTTP 429 与限流
 
-## 写后读和历史分页
+REST 预算以固定 60 秒窗口按请求权重计算。所有 `/v1/*` 请求都计入 IP 预算。签名者核实为所声明主体的命令另计入该账户的预算，子账户共享主钱包的预算。暂时无法核实签名者的命令改用一个独立的、额度更小的 IP 预算。
 
-写响应的 `x-dexos-seq` 表示提交位置。需要读到此次写的后续 REST 请求发送 `x-dexos-min-seq`，副本落后时返回 412；重新读取时保留这个最小值。
+读取 `ratelimit` 和 `ratelimit-policy`；进入账户预算检查的写入还会带 `x-ratelimit-account`。429 响应带 `retry-after`，`error.details.bucket` 为 `ip`、`account` 或 `unverified`。按要求等待，避免并发重试集中爆发。运营方可以调整预算，不要把默认值当作固定的服务承诺。
 
-执行历史第一页返回 `epoch` 和固定上界 `upper`。继续翻页的 `after` 使用上一页的 `next`，并原样带回 `epoch`、`upper`；缺少边界会返回 400。不要跨分页混用新的上界或排序方向。
+## 写后读与历史分页
 
-409 `history_epoch_mismatch` 表示账本纪元已改变；旧游标不再可用，重新获取第一页并重建本地状态。400 消息含 `not yet complete` 表示该上界的历史尚未完整，可以保留原请求稍后重试；其他 400 应先修正参数。WebSocket 补拉流程见 [WebSocket](websocket.md)。
+命令的 `seq` 是它在日志中的位置。后续 REST 读取必须包含这次写入时，带上 `x-dexos-min-seq`。副本落后会返回 412，重试时保留这个最低要求。
+
+执行历史的第一页返回 `epoch` 和固定上界 `upper`。后续页把上一页的 `next` 作为 `after`，并原样带回同一个 `epoch` 和 `upper`；缺少边界会返回 400。翻页中途不要更换边界或排序方向。
+
+409 `history_epoch_mismatch` 表示账本纪元已变化：旧游标失效，需要重新拉第一页并重建本地状态。400 `GatewayHistoryIncomplete` 表示请求边界内的历史尚未写完：稍后原样重试。其他参数错误先修正再重试。实时流的补拉见 [WebSocket](websocket.md)。

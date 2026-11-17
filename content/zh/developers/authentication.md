@@ -1,47 +1,49 @@
 # 签名与授权
 
-公开读取不需要 API key。写请求通过 EIP-712 签名验证身份；私钥只用于本地签名，不能作为请求字段发送给网关。
+公开只读接口不需要 API Key。所有签名写入都是一条命令，以 `{"command":"0x…"}` 提交到 `POST /v1/commands`，内容是签好名的命令规范字节的小写 hex。被签名的不是请求 JSON；网关也不会代签、不会补 nonce、不会延长有效期。私钥只用于本地签名，不要发给网关。
 
-## 签名前需要的信息
+请用公开的 Go SDK [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go)（`dexosv1` 包）构造命令；其中 `examples/commands` 演示了授权、下单、重发、撤单、过期和撤销授权的完整流程。不要自己手写二进制编码。
 
-从 `/v1/exchange` 获取当前环境的 `domain`、`chainId` 和资产表，从 `/v1/markets/{symbol}` 获取市场精度和 `signingMarketId`，从 `/v1/account/nonce` 获取 `nonce` 和 `signingAccountId`。每个写接口的 OpenAPI `x-eip712.typeString` 指明签名结构。JSON 业务参数不等于 EIP-712 message；不要直接把请求 JSON 哈希后签名。
+## 命令绑定了什么
 
-签名中的价格与数量使用整数：`ticks = price × 10^priceDecimals`，`lots = size × 10^sizeDecimals`。换算必须精确，同时满足市场的 tick、lot 和业务限制。资产金额按对应资产的小数位换算；USDC 为 6 位，不要将所有资产都当作 USDC。
+| 组成部分 | 从哪里取 |
+|---|---|
+| 网络身份：`networkId`、`genesisHash`、`ledgerEpoch`、链 ID、验证合约、`manifestHash` | `GET /v1/security/network`。每个环境单独读取，不要写死 |
+| 签名主体 | 账户根（账户签名策略的成员，即主钱包），或持有授权的 API 钱包 |
+| nonce 车道与 nonce | `trade` 用于下单撤单；`funds` 用于提现、转账和金库存取；`management` 用于授权、子账户等管理设置 |
+| 有效期 | `validUntilMs`，按 `GET /v1/security/time` 给出的账本认证时间判断，不看本机时钟 |
+| 内层命令 | 业务动作的规范编码；价格和数量是缩放后的整数，市场用 `signingMarketId`，账户用 `signingAccountId` |
 
-## 主钱包签名
+签名是对覆盖以上全部内容的 `AuthorizedAction` 结构做 EIP-712 签名。命令的 `actionId` 同时就是查询回执用的 `requestId`。
 
-共享请求信封包含 `account`、`nonce`、`signature`，以及适用时的 `subaccount`、`vault`、`signer`、`expiresAt`、`nowMs`。`account` 是主钱包地址；子账户以 `subaccount` 指定。不要将 `signingAccountId` 填进地址字段。
+账本重建后网络身份会变化。签在旧网络上的命令会被 503 `upstream_manifest_mismatch` 拒绝；提交时带上 `x-dexos-expect-manifest`（签名时用的 manifest 哈希），不一致时就能明确发现。重新读取网络身份后再签。
 
-未提供 `signer` 时走主钱包签名路径。`expiresAt` 只在相应签名结构支持时生效；当前 Order 的 `expiry` 来自该字段，0 或省略表示不设到期时间。不要假定信封中的可选字段会影响每一种操作。
+## 账户与签名主体
 
-nonce 查询返回的 `scope` 区分账户与 API 钱包。当前使用递增 nonce；不要按时间戳窗口 nonce 编写客户端。多个写入者共享同一 scope 时需协调分配和提交顺序，不能让并发请求各自读取同一个 nonce 后独立提交。请求结果不明时先查回执，不能仅凭再次读取 nonce 判断是否成功。
+`GET /v1/security/accounts?member=<地址>` 列出成员里包含该地址的账户策略，含策略号、纪元、门限和成员。`soleSigner: true` 表示该地址自己的单签账户。子账户沿用主账户的策略；`GET /v1/account/subaccounts?address=` 返回每个子账户的 `signingAccountId`。
+
+## 整数缩放
+
+签名中的价格和数量是整数：`ticks = price × 10^priceDecimals`，`lots = size × 10^sizeDecimals`，`priceDecimals`、`sizeDecimals` 取自 `/v1/markets/{symbol}`。换算必须整除，并满足市场的价格步长、数量步长和业务限制。资产金额按该资产自己的小数位缩放，不要对所有资产套用 USDC 的精度。
+
+## nonce
+
+每个签名主体在每条车道上各有一个 nonce 窗口。用 `GET /v1/security/nonces?principal=account&policy=<策略号>&lane=<车道>` 读取（API 钱包另带 `grant` 和 `grantEpoch`），也可以用 `GET /v1/account/nonce?address=…&lane=…`。窗口返回下界 `floor`、已用最高值 `high`（没用过为 null）和建议值 `next`：低于 `floor` 或已经用过的值会被拒绝，`next` 及以上的值一定没用过。
+
+共用同一主体和车道的多个写入方必须协调分配 nonce。写入被拒或结果未知时，不要马上用新 nonce 把同一个动作重签一遍：先弄清原命令的结论（见[错误与恢复](errors-and-recovery.md)）。
 
 ## API 钱包
 
-主钱包通过 `POST /v1/account/agents/approve` 授权 API 钱包，并可通过 `/v1/account/agents/revoke` 撤销。API 钱包用于交易，不能提款、转账或管理授权。撤销和有效期必须纳入密钥管理流程。
+主钱包用一条 `management` 车道的命令给 API 钱包发授权。授权写明被授权的 API 钱包、覆盖哪些子账户、允许哪些操作和到期时间，还可以限定市场和价格区间。撤销授权也是一条 `management` 车道的命令。API 钱包不能使用 `funds` 车道，因此不能提现、转账，也不能做金库存取。
 
-API 钱包写请求带 `signer`，签名对象是 `AgentExec(bytes32 commandHash,uint64 nonce)`；`commandHash` 是内层命令的规范字节哈希，不是任意 JSON 的哈希。应使用与当前服务匹配、已验证的编码实现。批量下单、换单、定时撤单等命令涉及 `nowMs`；逐端点核对必填项及参与哈希的字段。
+授权生效后 API 钱包才能签名：在 `GET /v1/security/grants?policy=<策略号>` 查看该授权的 `status` 和 `epoch`，或查 `GET /v1/account/agents?address=` 和 `GET /v1/agents/{address}`，其中 `executable: true` 表示按当前认证时间账本会接受这条授权。这些列表只是清单；命令仍可能因操作、账户、市场或额度超出授权范围而被拒。
 
-查询 API 钱包 nonce：
+API 钱包以代理主体签名，带上授权 ID 和授权纪元，使用自己的 nonce 窗口，与主钱包的互不相干。
 
-```bash
-: "${DEXOS_API_URL:?请设置 API 基础地址}"
-: "${DEXOS_ADDRESS:?请设置被代表账户的主钱包地址}"
-: "${DEXOS_SIGNER:?请设置 API 钱包地址}"
-curl --fail-with-body --silent --show-error --get \
-  "$DEXOS_API_URL/v1/account/nonce" \
-  --data-urlencode "address=$DEXOS_ADDRESS" \
-  --data-urlencode "signer=$DEXOS_SIGNER"
-```
+## 金库
 
-该 nonce 属于 API 钱包 scope，不能拿主钱包账户 nonce 代替。授权刚成功时，首次写请求带 `x-dexos-min-seq`，值取授权回执的 `seq`，确保网关能看到授权。
+读取金库账户用查询参数 `vault`。金库账户的交易由金库经理完成，可以用经理的主钱包，也可以用经理授权的 API 钱包。金库存入和赎回是 `funds` 车道的命令，由存入人的主钱包签名；API 钱包不能提交。
 
-## 金库交易身份
+## 排查拒绝
 
-读取金库账户使用 `vault` 查询参数。代表金库写入时，信封同时带 `vault` 和 manager 的主钱包 `account`，不能带 `subaccount`。主钱包签名使用金库账户自己的 nonce 与 `signingAccountId`。API 钱包须授权在 manager 认领金库时使用的账户上。
-
-金库身份允许下单、撤单、换单、cancel-all、schedule-cancel 和调整杠杆；其他操作会被拒绝。金库入金、赎回等通过各自的 `/v1/vaults/*` 接口，由对应参与者签名，不使用“代表金库交易”的身份。
-
-## 排查签名失败
-
-先检查环境及 domain，再检查账户身份和 nonce scope、整数换算、字段顺序和类型，以及 API 钱包的 command hash。错误码为 `GatewayBadSignature` 的请求未通过预检；`UnknownAgent`、`AgentExpired` 表示授权问题。不要用不断更换 nonce 的方式绕过根因。
+先核对环境和网络身份，再依次检查签名主体及其纪元、车道和 nonce 窗口、有效期是否已按认证时间过期、整数缩放。账本在授权环节拒绝的命令，回执状态为 `AuthorizationRejected` 并带稳定错误码，nonce 不会被消耗。反复更换 nonce 解决不了根本问题。

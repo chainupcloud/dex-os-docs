@@ -12,7 +12,7 @@ curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/time"
 curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/exchange"
 ```
 
-`/v1/time` returns `serverTime` in Unix milliseconds. `/v1/exchange` returns the signing `chainId` and `domain`, deposit system address, token table, version and numeric conventions. Read these values separately for each environment; do not hard-code a signing domain or contract address from an example.
+`/v1/time` returns `serverTime` in Unix milliseconds. `/v1/exchange` returns the EIP-712 domain, deposit system address, token table, version, vault creation fee and minimum deposit, and numeric conventions. The network identity that signed commands bind to comes from `/v1/security/network`. Read these values separately for each environment; do not hard-code a signing domain or contract address from an example.
 
 ## Discover markets
 
@@ -34,7 +34,7 @@ Record `priceDecimals`, `sizeDecimals`, `tickSize`, `lotSize`, `signingMarketId`
 
 ## Read your account
 
-Registered accounts can use public read endpoints for balances and the next order nonce. Set your main wallet address; these queries do not require a wallet connection.
+Registered accounts can use public read endpoints for balances and the next nonce. Set your main wallet address; these queries do not require a wallet connection.
 
 ```bash
 : "${DEXOS_ADDRESS:?Set your main wallet address}"
@@ -48,8 +48,10 @@ curl --fail-with-body --silent --show-error --get \
 
 A missing account can return 404; this does not mean the API is offline. Add `subaccount` for a subaccount; `0` denotes the main account. To read a vault account, use `vault` instead of `address` and `subaccount`; these selectors are mutually exclusive.
 
+The nonce defaults to the `trade` lane; add `lane=funds` or `lane=management` for the other lanes. Each lane has its own window.
+
 ## Add trading next
 
-Read [Signing and authorization](authentication.md), implement the endpoint's EIP-712 signature, and verify the complete flow in a test environment: fetch nonce → sign → submit → inspect business receipt → query orders or fills. This page provides no unverified signing implementation or executable fund-moving request.
+Read [Signing and authorization](authentication.md), then build and sign commands with the [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go) SDK. Verify the complete flow in a test environment: read network identity and certified time → read the nonce → sign → `POST /v1/commands` → query the receipt → query orders or fills. This page provides no executable fund-moving request.
 
-HTTP 200 does not always mean an order filled. Inspect every item in a batch response. HTTP 202 means the result is not yet available: query its `requestId` instead of blindly resending. See [REST API conventions](rest-api.md) for receipts, pagination and errors.
+HTTP 202 from `POST /v1/commands` means the command was sequenced, not that it executed or filled. Query its `requestId` and inspect every item in the receipt instead of blindly resending. See [REST API conventions](rest-api.md) and [Errors and recovery](errors-and-recovery.md) for receipts, pagination and errors.
