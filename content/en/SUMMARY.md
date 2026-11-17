@@ -24,7 +24,6 @@
 - [Exchange](api/exchange.md)
 - [Market data](api/market-data.md)
 - [Account](api/account.md)
-- [Trading](api/trading.md)
 - [Funds](api/funds.md)
 - [Vaults](api/vaults.md)
 - [Subscriptions](api/subscriptions.md)

@@ -24,7 +24,6 @@
 - [交易所信息](api/exchange.md)
 - [市场行情](api/market-data.md)
 - [账户](api/account.md)
-- [交易](api/trading.md)
 - [资金](api/funds.md)
 - [金库](api/vaults.md)
 - [订阅](api/subscriptions.md)
