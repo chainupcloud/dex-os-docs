@@ -15,7 +15,7 @@ Unibook supports perpetual futures and spot trading. They share an account, but 
 
 One wallet can own multiple accounts. Subaccounts let you manage funds and positions separately; perpetual positions within one account generally share margin. Moving funds to another account does not move existing orders or positions.
 
-An API wallet is a trading key authorized by your main wallet. It can perform trading operations within its scope, but cannot withdraw or transfer funds. Authorizations have their own expiry; revoke them when no longer needed. Never share your main wallet or API wallet private key.
+An API wallet is a trading key authorized by your main wallet. Each authorization lists the subaccounts and operations it covers and has its own expiry, and can also be limited to certain markets. An API wallet cannot withdraw or transfer funds. Revoke authorizations when no longer needed. Never share your main wallet or API wallet private key.
 
 ## Next steps
 

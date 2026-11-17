@@ -4,13 +4,13 @@
 
 Use the network, supported token contract and system destination supplied by the current environment. Identical token names do not mean identical contracts. Do not infer an address from this guide or reuse one from another deployment.
 
-Deposits credit supported on-chain transfers. Send only assets that are supported and registered. Test with a small amount and verify the account credit before sending more. A transaction being broadcast or confirmed on-chain is different from the trading account being credited: the system must identify it and wait for the required confirmations.
+Deposits credit supported on-chain transfers. Send only assets that are supported and registered, and check the minimum deposit for that asset: an amount below the minimum, or an asset the destination does not accept, can be rejected or refunded instead of credited. Test with a small amount and verify the account credit before sending more. A transaction being broadcast or confirmed on-chain is different from the trading account being credited: the system must identify it and wait for the required confirmations.
 
 On-chain token precision may exceed trading-ledger precision. Extra trailing precision is not credited. Allow for precision and network fees when comparing amounts.
 
 ## Withdrawing
 
-A withdrawal requires wallet authorization. The trading account is debited before the on-chain payout, so there can be a delay between the debit and receipt. API wallets cannot withdraw.
+A withdrawal requires your main wallet's authorization. The trading account is debited first and the on-chain payout follows after a waiting period, so there is a delay between the debit and receipt. API wallets cannot withdraw.
 
 Withdrawable funds differ from total balance. Unrealized profit or loss, initial margin, perpetual resting-order reserves, spot reservations and risk limits can all affect availability. Negative equity or a system withdrawal freeze may block withdrawals and transfers out.
 

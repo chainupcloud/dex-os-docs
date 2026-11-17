@@ -15,15 +15,13 @@ v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps
 | Vaults | `/v1/vaults`, `/v1/vaults/{id}` |
 | Request outcomes and backfill | `/v1/requests/{requestId}`, `/v1/events` |
 
-Account reads select `address` plus optional `subaccount`, or `vault` alone. Writes use `account` in the signed envelope; do not interchange these parameter names. `orderId` is a string. Do not coerce every numeric string into a JavaScript Number.
+Account reads select `address` plus optional `subaccount`, or `vault` alone; the two selectors are mutually exclusive. A perpetual and a spot market can share a name: add `kind` (`perp` or `spot`) where a name is ambiguous, otherwise the request is rejected rather than guessed. `orderId` and other 64-bit values are strings. Do not coerce every numeric string into a JavaScript Number.
 
 ## Write outcomes
 
-The default `ack=result` waits for execution. Single orders return a business outcome; batches return `items`, each of which may succeed or be rejected and must be checked individually. `ack=sequenced` confirms a sequencing position only, not business success. `waitMs` applies only to `ack=result` and accepts 0–5000 milliseconds; 0 means no waiting.
+All signed writes go through `POST /v1/commands` (see [Signing and authorization](authentication.md)). The endpoint does not wait for execution and has no `ack` or `waitMs` parameter. HTTP 202 returns `requestId`, `digest`, `seq` and `sub` and proves sequencing only. Save them with the original command bytes and query `/v1/requests/{requestId}?digest=` for the outcome; business results, including each item of a batch, are in the receipt. A connection can fail after the service accepts a command, so reconcile first, as described in [Errors and recovery](errors-and-recovery.md).
 
-HTTP 202 means the request was sequenced but no outcome arrived within the waiting budget. Save `requestId`, `seq`, `sub` and the original request, then query `/v1/requests/{requestId}`. A connection can fail after the service accepts a write, so reconcile first. If receipt lookup reports a history gap, “cannot prove execution” does not mean “did not execute.”
-
-`clientOrderId` supports client correlation and duplicate checks. Mappings for requests sequenced without an immediate result can later be resolved from execution history. Do not treat an initially pending mapping as proof that no order exists. Consult the order endpoint for its format, duplicate semantics and supported cases.
+`clientOrderId` is optional on signed orders: 1–36 characters from `A-Z a-z 0-9 . _ : / -`. A value the account has already used is rejected with 409 `GatewayDuplicateClientOrderId` before sequencing. Order reads return it. TWAP and TP/SL orders have no `clientOrderId`, and orders cannot be canceled or modified by it.
 
 ## Read after write
 
@@ -59,7 +57,7 @@ curl --fail-with-body --silent --show-error --get \
   --data-urlencode "epoch=$DEXOS_EPOCH"
 ```
 
-After a WebSocket disconnect, backfill through fills or events. Deduplicate by stable event id and handle explicit history-unavailable errors. Event pages filtered by symbol can be empty while still containing `next` and `hasMore`; do not stop on an empty page alone.
+After a WebSocket disconnect, backfill through fills or events. Deduplicate by stable event id and handle 400 `GatewayHistoryIncomplete` by retrying the same request later. Event pages filtered by symbol can be empty while still containing `next` and `hasMore`; do not stop on an empty page alone.
 
 ## Errors and limits
 
@@ -68,7 +66,7 @@ Business API errors use `{error:{code,num,message,details?}}`. Branch on stable 
 | Status | Response |
 |---|---|
 | 400 | Fix parameters, types or formatting |
-| 401 | Check signatures and the signing domain |
+| 401 | Check the signature pre-check on endpoints that verify signatures at the gateway |
 | 403 | Check ownership, API wallet grants and scope |
 | 404 | Verify account, market, order or resource identity |
 | 409 | Inspect conflict details and existing requests |
@@ -76,6 +74,6 @@ Business API errors use `{error:{code,num,message,details?}}`. Branch on stable 
 | 421 | Check the request entry point and node role |
 | 422 | Handle the business rejection; it is not a network failure |
 | 429 | Wait according to `retry-after` and reduce request weight |
-| 5xx / connection failure | For writes, inspect receipts and reconcile before proceeding |
+| 5xx / connection failure | For commands, resolve the receipt before signing anything new |
 
-Rate limits have IP and write-account budgets, counted by weight in fixed 60-second windows. Ordinary reads cost 1, books and prices 2, history requests 5. Writes cost a base weight of 1 plus `floor(n / 40)` for batches. Operators can adjust budgets; use the response `ratelimit`, `ratelimit-policy` and `x-ratelimit-account` headers. A 429 response's `details.bucket` identifies the IP or account budget.
+Rate limits have IP and write-account budgets, counted by weight in fixed 60-second windows. Ordinary reads cost 1, books and prices 2, history requests 5. Commands cost a base weight of 1 plus `floor(n / 40)`, where `n` counts the orders, cancels and modifications in the command. Operators can adjust budgets; use the response `ratelimit`, `ratelimit-policy` and `x-ratelimit-account` headers. A 429 response's `details.bucket` is `ip`, `account` or `unverified`.
