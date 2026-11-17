@@ -1,6 +1,6 @@
 # REST API 使用约定
 
-v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6a3f08872ba918fe24f0927fde0e4c08a9a4de79/api/openapi-v1.json)。本页解释调用流程，不复制整份接口定义。
+v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/b24ed31b718e7ae378e9d7e42606f22105cab181/api/openapi-v1.yaml)。本页解释调用流程，不复制整份接口定义。
 
 ## 接口选择
 
@@ -10,9 +10,9 @@ v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完�
 | 市场与行情 | `/v1/markets`、`/v1/prices`、`/v1/markets/{symbol}/book`、`/trades`、`/candles`、`/funding`（后面三项接在市场路径后） |
 | 账户状态 | `/v1/account`、`/v1/account/positions`、`/v1/account/orders` |
 | 成交与账本 | `/v1/account/fills`、`/v1/account/ledger`、`/v1/account/orders/history` |
-| 订单写入 | `/v1/orders`、`/v1/orders/cancel`、`/v1/orders/replace` |
-| 授权与资金 | `/v1/account/agents/*`、`/v1/account/withdraw`、`/v1/account/transfer` |
-| 金库 | `/v1/vaults`、`/v1/vaults/{id}` 及对应动作端点 |
+| 签名写入（订单、授权、资金、金库） | `POST /v1/commands` |
+| 充提路由 | `/v1/exchange/cctp/routes`、`/v1/exchange/cctp/quote`、`/v1/exchange/cctp/withdraw-quote` |
+| 金库 | `/v1/vaults`、`/v1/vaults/{id}` |
 | 请求结论与补拉 | `/v1/requests/{requestId}`、`/v1/events` |
 
 读取账户时使用 `address` 和可选 `subaccount`，或单独使用 `vault`。写入使用签名信封的 `account`；两种参数名不要混用。订单编号 `orderId` 是字符串。不要将所有数值字符串强制转为 JavaScript Number。

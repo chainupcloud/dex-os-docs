@@ -28,3 +28,4 @@
 - [Funds](api/funds.md)
 - [Vaults](api/vaults.md)
 - [Subscriptions](api/subscriptions.md)
+- [Security](api/security.md)
