@@ -1,6 +1,6 @@
 # API 规格发布副本
 
-`openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `edfa7dea009ae12d51be5f0ca2aa5e6f3d7549e6` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
+`openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `be2e89abeef6e8b9ec7f6a2760741c81b01e667c` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
 
 两种语言共用本文件，不手工修改字段或翻译协议。上面这一行的格式供同步工作流改写，不要改动句式。
 
@@ -8,7 +8,7 @@ GitBook OpenAPI 导入地址：
 
 https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.yaml
 
-API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi 块，不另写摘要（块自带标题）。以下接口在生产环境不可用，规格里保留、不生成页面：已退役只返回 410 的 `POST /v1/orders/paired`（成对成交改经 `POST /v1/commands`，网关白名单开放，生产网络禁用）和 `POST /v1/account/cctp/deposit`，以及只在模拟网络存在的 `GET /v1/testnet/markets/{id}/oracle`、`GET /v1/testnet/mint-policy`。
+API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi 块，不另写摘要（块自带标题）。规格里的接口全部生成页面；不该对外的接口在上游规格里删除（dex-os#642），不在本仓隐藏。
 
 正文中的 API 块固定引用本仓某个提交的规格，避免预览和回滚时读取不同版本；上方 main 地址用于 GitBook 手动导入最新发布副本。
 
@@ -29,4 +29,4 @@ API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi �
 - dex-os 的只读 deploy key，私钥存为本仓 Actions secret `DEXOS_DEPLOY_KEY`；
 - 本仓 Settings → Actions → General 勾选 "Allow GitHub Actions to create and approve pull requests"。
 
-当前副本取自 dex-os `dev`，早于本工作流；dex-os `main` 有了 `web/gitbook/openapi-v1.yaml` 之后，第一次同步会换成 `main` 的版本。
+当前副本取自 dex-os `dev`（含 dex-os#642 的对外描述清理），dex-os `main` 还没有 `web/gitbook/`；`main` 有了之后，第一次同步会换成 `main` 的版本。

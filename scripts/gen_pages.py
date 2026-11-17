@@ -19,20 +19,10 @@ pages = {
         "签名写请求统一通过 `POST /v1/commands` 提交。本页还包括托管、治理和集群相关的读取接口。"),
 }
 
-hidden = {
-    ("post", "/v1/orders/paired"),
-    ("post", "/v1/account/cctp/deposit"),
-    ("get", "/v1/testnet/markets/{id}/oracle"),
-    ("get", "/v1/testnet/mint-policy"),
-}
-seen = set()
 ops = {t: [] for t in pages}
 for path, item in spec["paths"].items():
     for method, op in item.items():
         if method not in ("get", "post", "put", "patch", "delete"):
-            continue
-        if (method, path) in hidden:
-            seen.add((method, path))
             continue
         tags = op.get("tags") or []
         assert len(tags) == 1 and tags[0] in pages, (method, path, tags)
@@ -53,5 +43,4 @@ for tag, (slug, en, zh, intro_en, intro_zh) in pages.items():
             ]
         open(f"{root}/content/{lang}/api/{slug}.md", "w").write("\n".join(out).rstrip("\n") + "\n")
 
-assert seen == hidden, hidden - seen
 print({t: len(v) for t, v in ops.items()}, sum(len(v) for v in ops.values()))
