@@ -7924,7 +7924,7 @@ components:
                 - string
                 - "null"
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "Decimal string. Taker leg of a scheduled deployer fee change on the security ledger: a change raising either `deployerRate` or `deployerMakerRate` waits as a whole and takes effect at `pendingEffectiveAtMs` (certified time of the change + the deployer fee cooldown, 30 days) at the first certified time advance on or after it; fills before that pay the current rates. A change raising neither takes effect at once and withdraws the pending change; delisting or final settlement drops it. `null` = nothing pending"
+              description: "Decimal string. Taker leg of a scheduled deployer fee change on the security ledger: when a change raises either `deployerRate` or `deployerMakerRate`, the rates it cuts or keeps apply at once, and the full target waits: it takes effect at `pendingEffectiveAtMs` (certified time of the change + 7 days) at the first certified time advance on or after it; until then fills pay the raised rate at its current value. A change raising neither takes effect at once and withdraws the pending change; delisting or final settlement drops it. `null` = nothing pending"
             pendingDeployerMakerRate:
               type:
                 - string
