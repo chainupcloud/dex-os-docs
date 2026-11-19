@@ -27,4 +27,7 @@
 - [资金](api/funds.md)
 - [金库](api/vaults.md)
 - [订阅](api/subscriptions.md)
-- [安全](api/security.md)
+- [交易](api/trading.md)
+- [预言机](api/oracle.md)
+- [商户](api/merchants.md)
+- [治理](api/governance.md)

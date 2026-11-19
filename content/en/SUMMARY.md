@@ -27,4 +27,7 @@
 - [Funds](api/funds.md)
 - [Vaults](api/vaults.md)
 - [Subscriptions](api/subscriptions.md)
-- [Security](api/security.md)
+- [Trading](api/trading.md)
+- [Oracle](api/oracle.md)
+- [Merchants](api/merchants.md)
+- [Governance](api/governance.md)

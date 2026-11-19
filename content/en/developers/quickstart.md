@@ -12,7 +12,7 @@ curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/time"
 curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/exchange"
 ```
 
-`/v1/time` returns `serverTime` in Unix milliseconds. `/v1/exchange` returns the EIP-712 domain, deposit system address, token table, version, vault creation fee and minimum deposit, and numeric conventions. The network identity that signed commands bind to comes from `/v1/security/network`. Read these values separately for each environment; do not hard-code a signing domain or contract address from an example.
+`/v1/time` returns `serverTime` in Unix milliseconds. `/v1/exchange` returns the EIP-712 domain, deposit system address, token table, version, vault creation fee and minimum deposit, and numeric conventions. The network identity that signed commands bind to comes from `/v1/network`. Read these values separately for each environment; do not hard-code a signing domain or contract address from an example.
 
 ## Discover markets
 
