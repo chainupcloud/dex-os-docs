@@ -2,7 +2,7 @@
 # change the source, the overlay or the strings file and run: node scripts/gen-gitbook-openapi.mjs
 openapi: "3.1.0"
 info:
-  title: DEXOS Open API v1
+  title: "DEXOS 开放 API v1"
   version: "0.1.0"
   summary: "面向开发者、builder 和流动性提供者的公共 REST + WebSocket 接口"
   description: |-
@@ -2684,7 +2684,7 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - title: Policy signatures
+                  - title: "策略签名"
                     type: object
                     required:
                       - status
@@ -2706,7 +2706,7 @@ paths:
                       name:
                         type: string
                         description: "已保存的名称，与签名内容完全一致"
-                  - title: Legacy ledger
+                  - title: "旧版账本"
                     type: object
                     properties:
                       status:
@@ -2745,7 +2745,7 @@ paths:
           application/json:
             schema:
               oneOf:
-                - title: Policy signatures
+                - title: "策略签名"
                   type: object
                   required:
                     - account
@@ -2796,7 +2796,7 @@ paths:
                         type: string
                         pattern: "^0x[0-9a-fA-F]{130}$"
                       description: "65 字节签名（r ‖ s ‖ v，v = 27/28 或 0/1），对 `x-eip712.ledgerDomain` 下的 `x-eip712.ledgerTypeString` 签名，顺序不限。门限 ≤ 数量 ≤ 成员数且不重复，否则 401 `GatewayBadSignature`；超过 16 个返回 400"
-                - title: Legacy ledger
+                - title: "旧版账本"
                   type: object
                   required:
                     - account
@@ -2833,7 +2833,7 @@ paths:
         - Trading
       summary: "提交签名命令"
       description: |-
-        提交一条完整签名的命令：`{"command": "0x…"}`（SDK 生成的规范编码，小写 hex）。
+        提交一条完整签名的命令：`{"command": "0x…"}`（SDK 生成的规范编码，小写十六进制）。
         nonce、有效期和签名都必须已在命令中。不接受查询参数
         （400 `unsupported_submission_parameter`）。
 
@@ -2870,7 +2870,7 @@ paths:
                   pattern: "^0x[0-9a-f]+$"
                   minLength: 6
                   maxLength: 2097154
-                  description: "规范二进制编码的签名命令：`0x` + 小写 hex，解码后最多 1 MiB。非规范字节：400 `malformed_signed_command`"
+                  description: "规范二进制编码的签名命令：`0x` + 小写十六进制，解码后最多 1 MiB。非规范字节：400 `malformed_signed_command`"
       responses:
         "200":
           description: "完全相同的命令（相同的 `requestId` 和 `digest`）已被准入：返回首次回执，带 `duplicate: true`；`seq` / `sub` / `x-dexos-seq` 均为首次准入时的值"
@@ -2920,7 +2920,7 @@ paths:
               schema:
                 "$ref": "#/components/schemas/CommandError"
         "421":
-          description: "本节点不接受写入（`read_only_replica`、`not_leader`；已知时 `leader` 为 leader 的节点 ID，十进制字符串）；把同一命令发往另一个节点"
+          description: "本节点不接受写入（`read_only_replica`、`not_leader`；已知时 `leader` 为主节点的节点 ID，十进制字符串）；把同一命令发往另一个节点"
           content:
             application/json:
               schema:
@@ -3017,7 +3017,7 @@ paths:
                         type:
                           - string
                           - "null"
-                        description: "配方哈希，0x hex（域 `DEXOS/PriceRecipe/v1`）；其他喂价为 `null`"
+                        description: "配方哈希，0x 开头的十六进制（域 `DEXOS/PriceRecipe/v1`）；其他喂价为 `null`"
                       algorithmId:
                         type: integer
                       algorithmVersion:
@@ -3310,7 +3310,7 @@ paths:
       tags:
         - Oracle
       summary: "预言机资源配置"
-      description: "从同一账本快照返回一个预言机资源：规范配置、其哈希、版本号（十进制字符串）和归属（公共或某个私有交易所）。`kind` 1 = `Feed`，2 = `ReporterSet`；`id` = 32 字节小写 hex 键，低 64 位为整数 ID。`resource` 与 `GET /v1/oracle/resources` 列表中的一项相同。"
+      description: "从同一账本快照返回一个预言机资源：规范配置、其哈希、版本号（十进制字符串）和归属（公共或某个私有交易所）。`kind` 1 = `Feed`，2 = `ReporterSet`；`id` = 32 字节小写十六进制键，低 64 位为整数 ID。`resource` 与 `GET /v1/oracle/resources` 列表中的一项相同。"
       operationId: v1_oracle_resource
       parameters:
         - name: kind
@@ -3324,7 +3324,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "带 0x 前缀的 32 字节小写 hex 键"
+          description: "带 0x 前缀的 32 字节小写十六进制键"
       responses:
         "200":
           description: "同一个一致的账本快照；`u64` 值为十进制字符串。对交易所所有的资源，交易所归理事会所有时 `ownerAccountId` 为 0，`dexOwnerKind` 为 `council`"
@@ -3394,7 +3394,7 @@ paths:
                         description: "请求的基础币名"
                       instrumentId:
                         type: string
-                        description: "`keccak256(symbol)`，该币喂价携带的标的 ID（`bytes32`，0x 开头的 hex）"
+                        description: "`keccak256(symbol)`，该币喂价携带的标的 ID（`bytes32`，0x 开头的十六进制）"
                       venues:
                         type: array
                         description: "按价格来源 ID 排序；没有已启用的价格来源列出该币时为空"
@@ -3503,7 +3503,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "注册 ID（带 0x 前缀的 32 字节 hex）"
+          description: "注册 ID（带 0x 前缀的 32 字节十六进制）"
       responses:
         "200":
           description: "已发布的账本快照（只读）"
@@ -3544,7 +3544,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "提案 ID（0x 前缀的 32 字节 hex）"
+          description: "提案 ID（0x 前缀的 32 字节十六进制）"
       responses:
         "200":
           description: "已发布的账本状态。`authorKind` / `oldOwnerKind` 表示提案方 / 原所有者是账户还是理事会；理事会对应的 `oldOwner` 为 0"
@@ -3563,7 +3563,7 @@ paths:
       tags:
         - Funds
       summary: "托管组"
-      description: "托管组的账本状态：目录版本、`mode`（`normal` / `escapePending` / `frozen`）、下一个根序号和上次快照点时间、包含该组且已切出但尚未被接受的根、最近被接受的根、逃生和冻结状态、链上观测，以及按资产统计的入金 / 退款 / 支付计数及累计哈希。另含 `registration`（hex）、`registrationHash`（= 注册该组的治理操作的 `configHash`）和 `firstCheckpointSeq`（创世组为 1）。"
+      description: "托管组的账本状态：目录版本、`mode`（`normal` / `escapePending` / `frozen`）、下一个根序号和上次快照点时间、包含该组且已切出但尚未被接受的根、最近被接受的根、逃生和冻结状态、链上观测，以及按资产统计的入金 / 退款 / 支付计数及累计哈希。另含 `registration`（十六进制）、`registrationHash`（= 注册该组的治理操作的 `configHash`）和 `firstCheckpointSeq`（创世组为 1）。"
       operationId: v1_custody_group
       parameters:
         - name: key
@@ -3571,7 +3571,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "托管组的 `custodyKeyHash`，0x 32 字节 hex"
+          description: "托管组的 `custodyKeyHash`，0x 32 字节十六进制"
       responses:
         "200":
           description: "账本快照视图"
@@ -3670,7 +3670,7 @@ paths:
         - name: x-dexos-expect-manifest
           in: header
           required: false
-          description: "期望的 Manifest 哈希（0x + 64 位 hex）；与本节点不符或该头重复发送时返回 503"
+          description: "期望的 Manifest 哈希（0x + 64 位十六进制）；与本节点不符或该头重复发送时返回 503"
           schema:
             type: string
       responses:
@@ -3700,7 +3700,7 @@ paths:
                       - hex
                   canonicalManifest:
                     type: string
-                    description: "规范 Manifest 字节（0x hex）"
+                    description: "规范 Manifest 字节（0x 开头的十六进制）"
                   manifestHash:
                     type: string
                     description: "Manifest 哈希（`bytes32`）"
@@ -3709,16 +3709,16 @@ paths:
                     description: "Manifest 的配置档编号"
                   networkId:
                     type: string
-                    description: "网络 ID（`bytes32`，0x hex）"
+                    description: "网络 ID（`bytes32`，0x 开头的十六进制）"
                   genesisHash:
                     type: string
-                    description: "创世哈希（`bytes32`，0x hex）"
+                    description: "创世哈希（`bytes32`，0x 开头的十六进制）"
                   ledgerEpoch:
                     type: string
                     description: "账本纪元，十进制字符串"
                   nodeChainId:
                     type: string
-                    description: "EIP-712 域的 `chainId`（`uint256`，0x hex）"
+                    description: "EIP-712 域的 `chainId`（`uint256`，0x 开头的十六进制）"
                   nodeVerifier:
                     type: string
                     description: "EIP-712 域的 `verifyingContract`（地址）"
@@ -3810,7 +3810,7 @@ paths:
                             - string
                             - "null"
                           pattern: "^[0-9a-f]{64}$"
-                          description: "证书 SPKI 的 SHA-256（64 个小写 hex 字符）；仅单节点模式下为 `null`"
+                          description: "证书 SPKI 的 SHA-256（64 个小写十六进制字符）；仅单节点模式下为 `null`"
                         kind:
                           type:
                             - string
@@ -3843,7 +3843,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "成员地址（0x + 40 位 hex）"
+          description: "成员地址（0x + 40 位十六进制）"
         - name: after
           in: query
           required: false
@@ -3934,7 +3934,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "票据 ID，0x 32 字节 hex"
+          description: "票据 ID，0x 32 字节十六进制"
       responses:
         "200":
           description: "账本快照视图"
@@ -4231,7 +4231,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "托管组的 `custodyKeyHash`，0x 32 字节 hex"
+          description: "托管组的 `custodyKeyHash`，0x 32 字节十六进制"
         - name: asset
           in: path
           required: true
@@ -4375,13 +4375,13 @@ paths:
           required: true
           schema:
             type: string
-          description: "托管组的 `custodyKeyHash`（带 0x 前缀的 32 字节 hex）"
+          description: "托管组的 `custodyKeyHash`（带 0x 前缀的 32 字节十六进制）"
         - name: tx
           in: path
           required: true
           schema:
             type: string
-          description: "托管链交易哈希（0x 前缀的 32 字节 hex）"
+          description: "托管链交易哈希（0x 前缀的 32 字节十六进制）"
       responses:
         "200":
           description: "该交易中本托管组的入金回执，各附账本状态"
@@ -4552,7 +4552,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "`custodyKeyHash`（0x 前缀的 32 字节 hex）"
+          description: "`custodyKeyHash`（0x 前缀的 32 字节十六进制）"
       responses:
         "200":
           description: "诊断信息"
@@ -4891,7 +4891,7 @@ paths:
                       type: object
                   preconditionsHash:
                     type: string
-                    description: "带 0x 前缀的 hex"
+                    description: "带 0x 前缀的十六进制"
                   delayMs:
                     type: string
                   delayClasses:
@@ -4922,7 +4922,7 @@ paths:
               properties:
                 command:
                   type: string
-                  description: "带 0x 前缀的 hex"
+                  description: "带 0x 前缀的十六进制"
               required:
                 - command
         description: "一条签名命令的规范编码；其他命令类型返回 400 `not_an_authenticated_command`"
@@ -5249,7 +5249,7 @@ paths:
               properties:
                 unsigned:
                   type: string
-                  description: "带 0x 前缀的 hex"
+                  description: "带 0x 前缀的十六进制"
                 signatures:
                   type: array
                   items: {}
@@ -5444,7 +5444,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "请求号（= `actionId`），0x 前缀的 32 字节 hex"
+          description: "请求号（= `actionId`），0x 前缀的 32 字节十六进制"
       responses:
         "200":
           description: "导出格式"
@@ -5626,7 +5626,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "`custodyKeyHash`（带 0x 前缀的 32 字节 hex）"
+          description: "`custodyKeyHash`（带 0x 前缀的 32 字节十六进制）"
         - name: fromBlock
           in: query
           required: false
@@ -5742,13 +5742,13 @@ paths:
           required: true
           schema:
             type: string
-          description: "`custodyKeyHash`（带 0x 前缀的 32 字节 hex）"
+          description: "`custodyKeyHash`（带 0x 前缀的 32 字节十六进制）"
         - name: id
           in: path
           required: true
           schema:
             type: string
-          description: "`lateDepositId`（带 0x 前缀的 32 字节 hex）"
+          description: "`lateDepositId`（带 0x 前缀的 32 字节十六进制）"
       responses:
         "200":
           description: "回执的链上状态"
@@ -5828,7 +5828,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "托管组的 `custodyKeyHash`（带 0x 前缀的 32 字节 hex）"
+          description: "托管组的 `custodyKeyHash`（带 0x 前缀的 32 字节十六进制）"
         - name: assetId
           in: query
           required: true
@@ -6136,7 +6136,7 @@ paths:
               properties:
                 custodyKeyHash:
                   type: string
-                  description: "带 0x 前缀的 32 字节 hex"
+                  description: "带 0x 前缀的 32 字节十六进制"
                 sourceDomain:
                   type: integer
                   description: "源链 CCTP 域（CCTP 路由中的 `deposit.sources[].domain`）"
@@ -6306,7 +6306,7 @@ paths:
               properties:
                 custodyKeyHash:
                   type: string
-                  description: "托管组密钥哈希，带 0x 前缀的 32 字节 hex"
+                  description: "托管组密钥哈希，带 0x 前缀的 32 字节十六进制"
                 assetId:
                   type: integer
                 destinationChainId:
@@ -6509,7 +6509,7 @@ paths:
                       - "null"
                   sha:
                     type: string
-                    description: "`content` 的 SHA-256（小写 hex）"
+                    description: "`content` 的 SHA-256（小写十六进制）"
                   schemaVersion:
                     type: integer
                   content:
@@ -7666,7 +7666,7 @@ components:
                   contract:
                     type: string
                     pattern: "^(0x)?[0-9a-fA-F]{64}$"
-                    description: "完整代币合约，32 字节 hex（EVM 地址左侧补零）"
+                    description: "完整代币合约，32 字节十六进制（EVM 地址左侧补零）"
                   extraDecimals:
                     type: integer
                     description: "链上代币与账本代币的有符号小数位差，-6..38"
@@ -7987,7 +7987,7 @@ components:
               description: "入金所在链 ID，十进制字符串"
             depositId:
               type: string
-              description: "入金去重键，带 0x 前缀的 32 字节 hex（对链和来源做 keccak）"
+              description: "入金去重键，带 0x 前缀的 32 字节十六进制（对链和来源做 keccak）"
             source:
               oneOf:
                 - type: object
@@ -8002,7 +8002,7 @@ components:
                         - tx
                     txId:
                       type: string
-                      description: "来源交易 ID，带 0x 前缀的 hex（EVM 链上为交易哈希）"
+                      description: "来源交易 ID，带 0x 前缀的十六进制（EVM 链上为交易哈希）"
                     indexInTx:
                       type: integer
                       description: "在交易回执 `logs` 数组中的下标（不是区块范围的日志下标）"
@@ -8021,7 +8021,7 @@ components:
                       description: "CCTP 源域"
                     nonce:
                       type: string
-                      description: "CCTP nonce，带 0x 前缀的 32 字节 hex"
+                      description: "CCTP nonce，带 0x 前缀的 32 字节十六进制"
         vault:
           type:
             - integer
@@ -8697,7 +8697,7 @@ components:
         tokenContract:
           type: string
           pattern: "^(0x)?[0-9a-fA-F]{64}$"
-          description: "托管链上的代币合约（32 字节 hex；EVM 地址左侧补零）"
+          description: "托管链上的代币合约（32 字节十六进制；EVM 地址左侧补零）"
         destChain:
           type: integer
           format: uint64
@@ -8707,7 +8707,7 @@ components:
         recipientBytes32:
           type: string
           pattern: "^(0x)?[0-9a-fA-F]{64}$"
-          description: "签名时的完整收款地址（32 字节 hex）"
+          description: "签名时的完整收款地址（32 字节十六进制）"
         maxBridgeFee:
           type: string
           pattern: "^[0-9]+$"
@@ -9948,7 +9948,7 @@ components:
             leader:
               type: string
               pattern: "^[0-9]+$"
-              description: "当前 leader（若已知），十进制字符串"
+              description: "当前主节点（若已知），十进制字符串"
               nullable: true
             hostLogIndex:
               type: string
@@ -10010,16 +10010,16 @@ components:
       properties:
         networkId:
           type: string
-          description: "网络 ID（`bytes32`，0x hex）"
+          description: "网络 ID（`bytes32`，0x 开头的十六进制）"
         genesisHash:
           type: string
-          description: "创世哈希（`bytes32`，0x hex）"
+          description: "创世哈希（`bytes32`，0x 开头的十六进制）"
         ledgerEpoch:
           type: string
           description: "账本纪元，十进制字符串"
         manifestHash:
           type: string
-          description: "Manifest 哈希（`bytes32`，0x hex）"
+          description: "Manifest 哈希（`bytes32`，0x 开头的十六进制）"
         inputSeq:
           type: string
           description: "该快照点的账本输入序号，十进制字符串"
@@ -10028,7 +10028,7 @@ components:
           description: "该快照点的宿主日志下标，十进制字符串"
         inputPrefix:
           type: string
-          description: "该快照点的账本输入前缀（`bytes32`，0x hex）"
+          description: "该快照点的账本输入前缀（`bytes32`，0x 开头的十六进制）"
     DexRegistration:
       type: object
       required:
@@ -10067,7 +10067,7 @@ components:
           description: "交易所配置版本，十进制字符串"
         configHash:
           type: string
-          description: "交易所配置哈希（`bytes32`，0x hex）"
+          description: "交易所配置哈希（`bytes32`，0x 开头的十六进制）"
         currentOwner:
           type: object
           required:
@@ -10111,7 +10111,7 @@ components:
           properties:
             registrationId:
               type: string
-              description: "注册 ID（`bytes32`，0x hex）"
+              description: "注册 ID（`bytes32`，0x 开头的十六进制）"
             originalOwnerAccount:
               type: integer
               description: "注册该交易所的账户"
@@ -10126,13 +10126,13 @@ components:
               description: "注册执行时的商户准入名单版本（仅供审计），十进制字符串"
             payload:
               type: string
-              description: "规范的 `RegisterDexV2` 载荷（0x hex）"
+              description: "规范的 `RegisterDexV2` 载荷（0x 开头的十六进制）"
             commitment:
               type: string
-              description: "注册承诺值（`bytes32`，0x hex）"
+              description: "注册承诺值（`bytes32`，0x 开头的十六进制）"
             resultDigest:
               type: string
-              description: "注册结果摘要（`bytes32`，0x hex）"
+              description: "注册结果摘要（`bytes32`，0x 开头的十六进制）"
         privateFeeds:
           type: object
           required:
@@ -10303,11 +10303,11 @@ components:
                     type:
                       - string
                       - boolean
-                    description: "整数为十进制字符串；`hash` 与 `bytes` 为 0x hex"
+                    description: "整数为十进制字符串；`hash` 与 `bytes` 为 0x 开头的十六进制"
           description: "算法参数，按所列内容签名"
         parametersHash:
           type: string
-          description: "参数的哈希（`bytes32`，0x hex），与参数一同签名"
+          description: "参数的哈希（`bytes32`，0x 开头的十六进制），与参数一同签名"
         policyStatus:
           type: integer
           description: "1 = 生效"
@@ -10330,7 +10330,7 @@ components:
           type:
             - string
             - "null"
-          description: "具名标的资产的标的 ID（`bytes32`，0x 开头的 hex），其他资产标识为 `null`。平台喂价使用大写基础币名的 keccak256，例如 `keccak256(\"BTC\")`；可直接用 `symbol` 过滤，无需自己计算。"
+          description: "具名标的资产的标的 ID（`bytes32`，0x 开头的十六进制），其他资产标识为 `null`。平台喂价使用大写基础币名的 keccak256，例如 `keccak256(\"BTC\")`；可直接用 `symbol` 过滤，无需自己计算。"
         assetIdentity:
           type: object
           description: "被报价的资产，取以下之一：`{\"namedInstrument\":{namespace,instrumentId}}`、`{\"cash\":{group,assetId,assetVersion}}` 或 `{\"externalToken\":{chainId,token,decimals}}`"
@@ -10378,7 +10378,7 @@ components:
           type:
             - string
             - "null"
-          description: "配方的哈希（`bytes32`，0x hex），没有配方时为 `null`"
+          description: "配方的哈希（`bytes32`，0x 开头的十六进制），没有配方时为 `null`"
         recommendedPolicy:
           anyOf:
             - "$ref": "#/components/schemas/RecommendedOraclePolicy"
@@ -10407,7 +10407,7 @@ components:
           type:
             - string
             - "null"
-          description: "具名标的资产的标的 ID（`bytes32`，0x 开头的 hex），其他资产标识为 `null`。平台喂价使用大写基础币名的 keccak256，例如 `keccak256(\"BTC\")`；可直接用 `symbol` 过滤，无需自己计算。"
+          description: "具名标的资产的标的 ID（`bytes32`，0x 开头的十六进制），其他资产标识为 `null`。平台喂价使用大写基础币名的 keccak256，例如 `keccak256(\"BTC\")`；可直接用 `symbol` 过滤，无需自己计算。"
         assetIdentity:
           type: object
           description: "被报价的资产，取以下之一：`{\"namedInstrument\":{namespace,instrumentId}}`、`{\"cash\":{group,assetId,assetVersion}}` 或 `{\"externalToken\":{chainId,token,decimals}}`"
@@ -10455,7 +10455,7 @@ components:
           type:
             - string
             - "null"
-          description: "配方的哈希（`bytes32`，0x hex），没有配方时为 `null`"
+          description: "配方的哈希（`bytes32`，0x 开头的十六进制），没有配方时为 `null`"
         owner:
           anyOf:
             - type: object
@@ -10497,7 +10497,7 @@ components:
           description: "1 = `Feed`，2 = `ReporterSet`"
         id:
           type: string
-          description: "资源键：带 0x 前缀的 32 字节小写 hex，低 64 位存放 `resourceId`"
+          description: "资源键：带 0x 前缀的 32 字节小写十六进制，低 64 位存放 `resourceId`"
         resourceId:
           type: string
           description: "资源 ID（64 位整数，以十进制字符串表示），例如 \"101\""
@@ -10549,10 +10549,10 @@ components:
           description: "`Configured` 是唯一的状态：账本从不删除或停用喂价和报价者集合，因此列出的每个资源都可以引用"
         canonicalResourceConfig:
           type: string
-          description: "完整的规范资源配置（0x hex）"
+          description: "完整的规范资源配置（0x 开头的十六进制）"
         configHash:
           type: string
-          description: "配置的哈希（`bytes32`，0x hex）"
+          description: "配置的哈希（`bytes32`，0x 开头的十六进制）"
         feed:
           anyOf:
             - "$ref": "#/components/schemas/OracleFeed"
@@ -10691,16 +10691,16 @@ components:
       properties:
         networkId:
           type: string
-          description: "网络 ID（`bytes32`，0x hex）"
+          description: "网络 ID（`bytes32`，0x 开头的十六进制）"
         genesisHash:
           type: string
-          description: "创世哈希（`bytes32`，0x hex）"
+          description: "创世哈希（`bytes32`，0x 开头的十六进制）"
         ledgerEpoch:
           type: string
           description: "账本纪元，十进制字符串"
         manifestHash:
           type: string
-          description: "Manifest 哈希（`bytes32`，0x hex）"
+          description: "Manifest 哈希（`bytes32`，0x 开头的十六进制）"
         inputSeq:
           type: string
           description: "该快照点的账本输入序号，十进制字符串"
