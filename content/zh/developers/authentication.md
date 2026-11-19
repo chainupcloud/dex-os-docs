@@ -28,7 +28,7 @@
 
 ## nonce
 
-每个签名主体在每条车道上各有一个 nonce 窗口。用 `GET /v1/nonces?principal=account&policy=<策略号>&lane=<车道>` 读取（API 钱包另带 `grant` 和 `grantEpoch`），也可以用 `GET /v1/account/nonce?address=…&lane=…`。窗口返回下界 `floor`、已用最高值 `high`（没用过为 null）和建议值 `next`：低于 `floor` 或已经用过的值会被拒绝，`next` 及以上的值一定没用过。
+每个签名主体在每条车道上各有一个 nonce 窗口。用 `GET /v1/nonces?principal=account&policy=<策略号>&lane=<车道>` 读取（API 钱包另带 `grant` 和 `grantEpoch`），也可以用 `GET /v1/account/nonce?address=…&lane=…`。窗口返回下界 `floor`、已用最高值 `high`（没用过为 `null`）和建议值 `next`：低于 `floor` 或已经用过的值会被拒绝，`next` 及以上的值一定没用过。
 
 共用同一主体和车道的多个写入方必须协调分配 nonce。写入被拒或结果未知时，不要马上用新 nonce 把同一个动作重签一遍：先弄清原命令的结论（见[错误与恢复](errors-and-recovery.md)）。
 

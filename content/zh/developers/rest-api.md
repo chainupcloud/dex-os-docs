@@ -57,11 +57,11 @@ curl --fail-with-body --silent --show-error --get \
   --data-urlencode "epoch=$DEXOS_EPOCH"
 ```
 
-WebSocket 断线后可通过成交或事件接口补拉。按稳定事件 id 去重，遇到 400 `GatewayHistoryIncomplete` 时稍后原样重试。按 symbol 过滤的事件页可能为空，但仍有 `next` 和 `hasMore`；不要遇到空页就停止。
+WebSocket 断线后可通过成交或事件接口补拉。按稳定的事件 `id` 去重，遇到 400 `GatewayHistoryIncomplete` 时稍后原样重试。按 `symbol` 过滤的事件页可能为空，但仍有 `next` 和 `hasMore`；不要遇到空页就停止。
 
 ## 错误与限流
 
-业务 API 错误使用 `{error:{code,num,message,details?}}`。程序按稳定的 `code` 分支，保留 HTTP 状态和 `details` 用于排查，不要解析英文 message。损坏的 HTTP 或 JSON 也可能由 HTTP 框架直接拒绝，客户端需要处理无法解析 JSON 的响应。
+业务 API 错误使用 `{error:{code,num,message,details?}}`。程序按稳定的 `code` 分支，保留 HTTP 状态和 `details` 用于排查，不要解析英文的 `message`。损坏的 HTTP 或 JSON 也可能由 HTTP 框架直接拒绝，客户端需要处理无法解析 JSON 的响应。
 
 | 状态 | 处理方向 |
 |---|---|
