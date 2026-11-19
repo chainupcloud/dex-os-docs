@@ -13,7 +13,7 @@ REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","detail
 | 409 | 冲突：`clientOrderId` 重复、同一 actionId 被另一份不同 digest 的原件受理，或分页时账本纪元已变化 |
 | 412 | 只读副本未达到你要求的 seq；保持该一致性要求重试 |
 | 413 / 415 / 408 | 命令正文过大、不是 `application/json`，或读取正文超时；命令没有提交 |
-| 421 | 节点只读或不是 leader；把同一条命令发到 leader 入口 |
+| 421 | 节点只读或不是主节点；把同一条命令发到主节点入口 |
 | 422 | 定序前的业务拒绝（如 `GatewayCollateralTokenMismatch`），nonce 没有消耗 |
 | 429 | 请求预算耗尽；遵守 `retry-after` 并降低请求频率 |
 | 5xx | 服务不可用。对命令而言，503 可能表示结果未知：先弄清结论，再发新的请求 |

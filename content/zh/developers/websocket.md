@@ -66,7 +66,7 @@
 1. 快照类频道会收到新的 `isSnapshot: true`，用它替换本地状态。
 2. 为 `fills` 和 `ledger` 分别从最后已处理的 `data.id` 补拉 REST；带上 lagged 提供的 `epoch` 和 `upper`，以及原账户选择参数。
 3. 使用响应的 `next` 继续翻页，始终保持同一 `epoch`、`upper`，直到 `hasMore` 为 false。遇到 400 `GatewayHistoryIncomplete`，等待历史写入后用同样边界重试。
-4. 此连接随后不再发送位置小于等于该 `upper` 的 fills/ledger 帧，补拉结果与后续直播可以无缺无重地衔接。
+4. 此连接随后不再发送位置小于等于该 `upper` 的 `fills` / `ledger` 频道帧，补拉结果与后续直播可以无缺无重地衔接。
 
 请求形式（尖括号内容需替换，并对查询参数编码）：
 

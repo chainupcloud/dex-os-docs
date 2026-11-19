@@ -2,78 +2,78 @@
 
 ## GET /v1/builder
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/builder" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/builder" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/builders/{address}/summary
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/builders/{address}/summary" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/builders/{address}/summary" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/dexes
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/dexes" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/dexes" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/dexes/{id}
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/dexes/{id}" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/dexes/{id}" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/fees
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/fees" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/fees" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/markets
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/markets" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/markets" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/markets/{symbol}
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/markets/{symbol}/book
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/book" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/book" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/markets/{symbol}/candles
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/candles" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/candles" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/markets/{symbol}/funding
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/funding" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/funding" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/markets/{symbol}/trades
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/trades" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/markets/{symbol}/trades" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/prices
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/prices" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/prices" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}
 
 ## GET /v1/tickers
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml" path="/v1/tickers" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml" path="/v1/tickers" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml
 {% endopenapi %}

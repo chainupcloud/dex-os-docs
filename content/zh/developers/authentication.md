@@ -1,6 +1,6 @@
 # 签名与授权
 
-公开只读接口不需要 API Key。所有签名写入都是一条命令，以 `{"command":"0x…"}` 提交到 `POST /v1/commands`，内容是签好名的命令规范字节的小写 hex。被签名的不是请求 JSON；网关也不会代签、不会补 nonce、不会延长有效期。私钥只用于本地签名，不要发给网关。
+公开只读接口不需要 API Key。所有签名写入都是一条命令，以 `{"command":"0x…"}` 提交到 `POST /v1/commands`，内容是签好名的命令规范字节的小写十六进制。被签名的不是请求 JSON；网关也不会代签、不会补 nonce、不会延长有效期。私钥只用于本地签名，不要发给网关。
 
 请用公开的 Go SDK [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go)（`dexosv1` 包）构造命令；其中 `examples/commands` 演示了授权、下单、重发、撤单、过期和撤销授权的完整流程。不要自己手写二进制编码。
 
@@ -16,7 +16,7 @@
 
 签名是对覆盖以上全部内容的 `AuthorizedAction` 结构做 EIP-712 签名。命令的 `actionId` 同时就是查询回执用的 `requestId`。
 
-账本重建后网络身份会变化。签在旧网络上的命令会被 503 `upstream_manifest_mismatch` 拒绝；提交时带上 `x-dexos-expect-manifest`（签名时用的 manifest 哈希），不一致时就能明确发现。重新读取网络身份后再签。
+账本重建后网络身份会变化。签在旧网络上的命令会被 503 `upstream_manifest_mismatch` 拒绝；提交时带上 `x-dexos-expect-manifest`（签名时用的 Manifest 哈希），不一致时就能明确发现。重新读取网络身份后再签。
 
 ## 账户与签名主体
 
