@@ -1,6 +1,6 @@
 # API 规格发布副本
 
-`openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `be2e89abeef6e8b9ec7f6a2760741c81b01e667c` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
+`openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `d3e079c4b65e480e9df0311044a5fb62151bbfaf` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
 
 两种语言共用本文件，不手工修改字段或翻译协议。上面这一行的格式供同步工作流改写，不要改动句式。
 
