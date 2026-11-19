@@ -1,6 +1,6 @@
 # 错误与恢复
 
-REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","details":{}}}`。这里的数字只示意结构，请以实际响应为准；`details` 可选。程序应按稳定的 `code` 和业务字段判断，同时保留 HTTP 状态、requestId 和响应正文用于排查。
+REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","details":{}}}`。这里的数字只示意结构，请以实际响应为准；`details` 可选。程序应按稳定的 `code` 和业务字段判断，同时保留 HTTP 状态、`requestId` 和响应正文用于排查。
 
 ## HTTP 状态码
 
@@ -10,8 +10,8 @@ REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","detail
 | 401 | 在网关预检签名的接口上，签名预检未通过 |
 | 403 | 所有权、范围或 builder 预检拒绝；在这里被拒的命令没有定序 |
 | 404 | 对象不存在；回执查询以 404 返回状态 `Unknown`（见下文） |
-| 409 | 冲突：`clientOrderId` 重复、同一 actionId 被另一份不同 digest 的原件受理，或分页时账本纪元已变化 |
-| 412 | 只读副本未达到你要求的 seq；保持该一致性要求重试 |
+| 409 | 冲突：`clientOrderId` 重复、同一 `actionId` 被另一份不同 `digest` 的原件受理，或分页时账本纪元已变化 |
+| 412 | 只读副本未达到你要求的 `seq`；保持该一致性要求重试 |
 | 413 / 415 / 408 | 命令正文过大、不是 `application/json`，或读取正文超时；命令没有提交 |
 | 421 | 节点只读或不是主节点；把同一条命令发到主节点入口 |
 | 422 | 定序前的业务拒绝（如 `GatewayCollateralTokenMismatch`），nonce 没有消耗 |
@@ -20,7 +20,7 @@ REST 错误格式为 `{"error":{"code":"…","num":10000,"message":"…","detail
 
 ## 命令的结论
 
-`POST /v1/commands` 在命令定序后返回 202。这只证明已定序，不证明授权通过或已经执行：`executionKnown` 为 false，`nonceConsumed` 为 null。保存原命令字节、`requestId`（即 actionId）和 `digest`，然后查询：
+`POST /v1/commands` 在命令定序后返回 202。这只证明已定序，不证明授权通过或已经执行：`executionKnown` 为 `false`，`nonceConsumed` 为 `null`。保存原命令字节、`requestId`（即 `actionId`）和 `digest`，然后查询：
 
 ```text
 GET /v1/requests/<requestId>?digest=<digest>
@@ -32,7 +32,7 @@ GET /v1/requests/<requestId>?digest=<digest>
 | `Executed` | 已执行。业务结果在 `events`，批量命令的逐项结论在 `items`，业务拒绝在 `businessRejected`；每一项都要检查 |
 | `AuthorizationRejected` | 账本在授权环节拒绝了这条命令；没有执行，nonce 没有消耗 |
 | `Unknown`（HTTP 404） | 读视图里没有这条命令的记录。单凭这一点不能证明它从未执行 |
-| HTTP 409 | 同一 actionId 被另一份不同 digest 的原件受理，例如改了有效期后重签的副本 |
+| HTTP 409 | 同一 `actionId` 被另一份不同 `digest` 的原件受理，例如改了有效期后重签的副本 |
 
 原样重发同一份命令字节是安全的：如果账本已受理，网关返回 200、第一次的回执和 `duplicate: true`，不会再次定序。改了有效期或 nonce 重新签名则是另一条命令，可能执行两次。
 

@@ -51,7 +51,7 @@
 
 订单快照整体替换本地挂单集合，未触发的条件单也在快照里（带 `trigger` 的行）。后续订单事件按 `orderId` 幂等应用：`status: "open"` 时保留或更新订单，`filled`、`canceled`、`expired` 时移除。条件单下单、触发、被拒或被自动撤销时，服务端改发一份新快照。K 线频道每次发送当前根的最新状态，应覆盖同一根 K 线，而非累加帧中的成交量。
 
-`seq` 是账本日志位置，不是连续的频道消息编号；不可仅凭 seq 跳号判定丢帧。私有频道帧还携带 `epoch`。`fills` 的 `data.id` 和每个 `ledger` 帧最后一条 `data.entries[].id` 分别是 `/v1/account/fills`、`/v1/account/ledger` 的 `after` 游标，应分别持久化。
+`seq` 是账本日志位置，不是连续的频道消息编号；不可仅凭 `seq` 跳号判定丢帧。私有频道帧还携带 `epoch`。`fills` 的 `data.id` 和每个 `ledger` 帧最后一条 `data.entries[].id` 分别是 `/v1/account/fills`、`/v1/account/ledger` 的 `after` 游标，应分别持久化。
 
 ## 丢帧与重连
 
@@ -64,8 +64,8 @@
 `reason: "buffer"` 表示服务端广播落后，丢弃了 `dropped` 个事件；`reason: "render"` 表示该连接无法生成流水类帧，此时 `dropped` 为 0。没有发出的帧永远不会补发。收到该帧后：
 
 1. 快照类频道会收到新的 `isSnapshot: true`，用它替换本地状态。
-2. 为 `fills` 和 `ledger` 分别从最后已处理的 `data.id` 补拉 REST；带上 lagged 提供的 `epoch` 和 `upper`，以及原账户选择参数。
-3. 使用响应的 `next` 继续翻页，始终保持同一 `epoch`、`upper`，直到 `hasMore` 为 false。遇到 400 `GatewayHistoryIncomplete`，等待历史写入后用同样边界重试。
+2. 为 `fills` 和 `ledger` 分别从最后已处理的 `data.id` 补拉 REST；带上 `lagged` 帧提供的 `epoch` 和 `upper`，以及原账户选择参数。
+3. 使用响应的 `next` 继续翻页，始终保持同一 `epoch`、`upper`，直到 `hasMore` 为 `false`。遇到 400 `GatewayHistoryIncomplete`，等待历史写入后用同样边界重试。
 4. 此连接随后不再发送位置小于等于该 `upper` 的 `fills` / `ledger` 频道帧，补拉结果与后续直播可以无缺无重地衔接。
 
 请求形式（尖括号内容需替换，并对查询参数编码）：
@@ -75,6 +75,6 @@ GET /v1/account/fills?address=<钱包地址>&after=<最后成交id>&epoch=<纪�
 GET /v1/account/ledger?vault=<金库号>&after=<最后流水id>&epoch=<纪元>&upper=<上界>
 ```
 
-若从未保存游标，先请求不带 `after` 的历史第一页，保存它返回的 `epoch`、`upper` 后分页；不能凭空构造一个“最后收到的 id”。
+若从未保存游标，先请求不带 `after` 的历史第一页，保存它返回的 `epoch`、`upper` 后分页；不能凭空构造一个“最后收到的 `id`”。
 
-网络断开后建立新连接并重新订阅。先比较订阅确认的 `epoch`：纪元变化时丢弃旧游标并重建状态。纪元不变时，从最后处理的 id 补拉流水类数据，上界取 `upper=<seq>-65535-4294967295`（`seq` 用新确认帧里的值），并带同一个 `epoch`；补拉结果与直播帧合并时按 `id` 去重。新连接本身不会重放历史。
+网络断开后建立新连接并重新订阅。先比较订阅确认的 `epoch`：纪元变化时丢弃旧游标并重建状态。纪元不变时，从最后处理的 `id` 补拉流水类数据，上界取 `upper=<seq>-65535-4294967295`（`seq` 用新确认帧里的值），并带同一个 `epoch`；补拉结果与直播帧合并时按 `id` 去重。新连接本身不会重放历史。
