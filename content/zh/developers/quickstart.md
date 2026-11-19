@@ -12,7 +12,7 @@ curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/time"
 curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/exchange"
 ```
 
-`/v1/time` 返回毫秒时间戳 `serverTime`。`/v1/exchange` 返回 EIP-712 签名域、入金系统地址、资产表、版本、金库创建费与最低存入额，以及数值约定。签名命令要绑定的网络身份取自 `/v1/security/network`。每个环境都应重新读取这些信息；不要把示例中的签名域或合约地址写死。
+`/v1/time` 返回毫秒时间戳 `serverTime`。`/v1/exchange` 返回 EIP-712 签名域、入金系统地址、资产表、版本、金库创建费与最低存入额，以及数值约定。签名命令要绑定的网络身份取自 `/v1/network`。每个环境都应重新读取这些信息；不要把示例中的签名域或合约地址写死。
 
 ## 获取可交易市场
 

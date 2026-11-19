@@ -8,10 +8,10 @@ Build commands with the public Go SDK [dex-sdk-go](https://github.com/chainupclo
 
 | Part | Where it comes from |
 |---|---|
-| Network identity: `networkId`, `genesisHash`, `ledgerEpoch`, chain id, verifying contract, `manifestHash` | `GET /v1/security/network`. Read it per environment and never hard-code it |
+| Network identity: `networkId`, `genesisHash`, `ledgerEpoch`, chain id, verifying contract, `manifestHash` | `GET /v1/network`. Read it per environment and never hard-code it |
 | Signing principal | The account root (a main wallet that is a member of the account's signing policy) or an API wallet acting under a grant |
 | Nonce lane and nonce | `trade` for orders and cancels, `funds` for withdrawals, transfers and vault deposits/redemptions, `management` for grants, subaccounts and similar settings |
-| Validity | `validUntilMs`, judged against certified ledger time from `GET /v1/security/time`, not your local clock |
+| Validity | `validUntilMs`, judged against certified ledger time from `GET /v1/time/certified`, not your local clock |
 | Inner command | Canonical encoding of the business action; prices and sizes are scaled integers, markets use `signingMarketId` and accounts use `signingAccountId` |
 
 The signature is EIP-712 over an `AuthorizedAction` struct that covers all of the above. The command's `actionId` is also its `requestId` for receipt lookups.
@@ -20,7 +20,7 @@ After a ledger re-genesis the network identity changes. A command signed against
 
 ## Accounts and principals
 
-`GET /v1/security/accounts?member=<address>` lists the account policies that include an address, with policy id, epoch, threshold and members. `soleSigner: true` marks the address's own single-signer account. Subaccounts share their main account's policy; `GET /v1/account/subaccounts?address=` returns each subaccount's `signingAccountId`.
+`GET /v1/accounts?member=<address>` lists the account policies that include an address, with policy id, epoch, threshold and members. `soleSigner: true` marks the address's own single-signer account. Subaccounts share their main account's policy; `GET /v1/account/subaccounts?address=` returns each subaccount's `signingAccountId`.
 
 ## Integer scaling
 
@@ -28,7 +28,7 @@ Signed prices and sizes are integers: `ticks = price × 10^priceDecimals`, `lots
 
 ## Nonces
 
-Each principal has a separate nonce window per lane. Read it with `GET /v1/security/nonces?principal=account&policy=<id>&lane=<lane>` (add `grant` and `grantEpoch` for an API wallet), or with `GET /v1/account/nonce?address=…&lane=…`. The window returns `floor`, the highest used value `high` (null if none) and a suggested `next`: values below `floor` or already used are rejected, and `next` and above have never been used.
+Each principal has a separate nonce window per lane. Read it with `GET /v1/nonces?principal=account&policy=<id>&lane=<lane>` (add `grant` and `grantEpoch` for an API wallet), or with `GET /v1/account/nonce?address=…&lane=…`. The window returns `floor`, the highest used value `high` (null if none) and a suggested `next`: values below `floor` or already used are rejected, and `next` and above have never been used.
 
 Writers that share a principal and lane must coordinate allocation. A rejected or unknown write does not mean you should immediately sign the same action again with a new nonce: resolve the original command first (see [Errors and recovery](errors-and-recovery.md)).
 
@@ -36,7 +36,7 @@ Writers that share a principal and lane must coordinate allocation. A rejected o
 
 The main wallet issues a grant to an API wallet with a `management`-lane command. A grant names the API wallet, the subaccounts it covers, the actions it may perform and an expiry, and can limit markets and price bands. Revoke it with another `management`-lane command. API wallets cannot use the `funds` lane, so they cannot withdraw, transfer funds or make vault deposits and redemptions.
 
-Wait until the grant is active before the API wallet signs: check `GET /v1/security/grants?policy=<id>` for the grant's `status` and `epoch`, or `GET /v1/account/agents?address=` and `GET /v1/agents/{address}`, where `executable: true` means the ledger would accept the grant at the current certified time. These listings are an inventory; a command can still be refused for its action, account, market or limits.
+Wait until the grant is active before the API wallet signs: check `GET /v1/grants?policy=<id>` for the grant's `status` and `epoch`, or `GET /v1/account/agents?address=` and `GET /v1/agents/{address}`, where `executable: true` means the ledger would accept the grant at the current certified time. These listings are an inventory; a command can still be refused for its action, account, market or limits.
 
 An API wallet signs as the agent principal with the grant id and grant epoch, and uses its own nonce windows, separate from the main wallet's.
 
