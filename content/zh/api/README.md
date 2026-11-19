@@ -6,7 +6,7 @@
 
 交互请求需要实际交易网关地址；公开网关地址发布前，本规格的服务器主机是占位域名 `api.dexos.invalid`。签名写请求需要先在客户端生成签名，统一通过 `POST /v1/commands` 提交。
 
-[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/c877578c6c8fc2f60efa2c373844e164946f0a00/api/openapi-v1.yaml)
+[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.zh.yaml)
 
 - [交易所信息](exchange.md)
 - [市场行情](market-data.md)
