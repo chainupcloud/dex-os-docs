@@ -2,8 +2,11 @@ import sys, yaml
 
 root, sha = sys.argv[1], sys.argv[2]
 spec_path = f"{root}/api/openapi-v1.yaml"
-src = f"https://raw.githubusercontent.com/chainupcloud/dex-os-docs/{sha}/api/openapi-v1.yaml"
+srcs = {lang: f"https://raw.githubusercontent.com/chainupcloud/dex-os-docs/{sha}/api/openapi-v1{suffix}.yaml"
+        for lang, suffix in (("en", ""), ("zh", ".zh"))}
 spec = yaml.safe_load(open(spec_path))
+zh = yaml.safe_load(open(f"{root}/api/openapi-v1.zh.yaml"))
+assert {p: sorted(i) for p, i in zh["paths"].items()} == {p: sorted(i) for p, i in spec["paths"].items()}, "zh spec operations differ"
 
 pages = {
     "Exchange": ("exchange", "Exchange", "交易所信息", None, None),
@@ -39,8 +42,8 @@ for tag, (slug, en, zh, intro_en, intro_zh) in pages.items():
         for method, path, summary in ops[tag]:
             out += [f"## {method.upper()} {path}", ""]
             out += [
-                f'{{% openapi src="{src}" path="{path}" method="{method}" %}}',
-                src,
+                f'{{% openapi src="{srcs[lang]}" path="{path}" method="{method}" %}}',
+                srcs[lang],
                 "{% endopenapi %}",
                 "",
             ]

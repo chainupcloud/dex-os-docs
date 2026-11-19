@@ -2,11 +2,14 @@
 
 `openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `d3e079c4b65e480e9df0311044a5fb62151bbfaf` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
 
-两种语言共用本文件，不手工修改字段或翻译协议。上面这一行的格式供同步工作流改写，不要改动句式。
+`openapi-v1.zh.yaml` 原样复制自 dex-os `dev` 分支提交 `d3e079c4b65e480e9df0311044a5fb62151bbfaf` 的 `web/gitbook/openapi-v1.zh.yaml`，是同一份规格的中文版：路径、字段、枚举和错误码与英文版完全相同，只翻译了给读者看的说明（译文在 dex-os 的 `web/gitbook/strings-v1.zh.json`）。
+
+英文页面引用 `openapi-v1.yaml`，中文页面引用 `openapi-v1.zh.yaml`。两份都不手工修改字段或翻译；译文有误改上游的译文文件。上面两行的格式供同步工作流改写，不要改动句式。
 
 GitBook OpenAPI 导入地址：
 
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.yaml
+- 英文：https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.yaml
+- 中文：https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.zh.yaml
 
 API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi 块，不另写摘要（块自带标题）。规格里的接口全部生成页面；不该对外的接口在上游规格里删除（dex-os#642），不在本仓隐藏。
 
@@ -16,9 +19,9 @@ API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi �
 
 ## 同步
 
-只跟 dex-os `main`。`.github/workflows/sync-openapi.yml` 每小时（也可手动触发）取 dex-os `main` 的 `web/gitbook/openapi-v1.yaml` 与本文件比对，不同就在 `sync/openapi-<上游提交前 12 位>` 分支上：
+只跟 dex-os `main`。`.github/workflows/sync-openapi.yml` 每小时（也可手动触发）取 dex-os `main` 的 `web/gitbook/openapi-v1.yaml` 和 `openapi-v1.zh.yaml` 与本目录的两份副本比对，不同就在 `sync/openapi-<上游提交前 12 位>` 分支上：
 
-1. 复制规格并改写上面的源提交，单独一个提交；
+1. 复制两份规格并改写上面的源提交，单独一个提交；
 2. 用 `python3 scripts/gen_pages.py . <第 1 步的提交>` 重新生成接口页，并把正文里所有规格链接固定到该提交；
 3. 开 PR，关闭被它取代的旧同步 PR。
 

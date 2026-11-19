@@ -6,7 +6,7 @@ Read the developer guides for decimal scaling, signing, and receipt handling. Ac
 
 Interactive requests require the actual gateway URL. The server host in this specification is the placeholder `api.dexos.invalid` until a public gateway address is published. Signed writes require a client-generated signature and are submitted through `POST /v1/commands`.
 
-[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/c877578c6c8fc2f60efa2c373844e164946f0a00/api/openapi-v1.yaml)
+[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/243267520f937019b36af85dc41a6a4887ac4fe4/api/openapi-v1.yaml)
 
 - [Exchange](exchange.md)
 - [Market data](market-data.md)
