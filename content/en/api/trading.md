@@ -1,6 +1,6 @@
 # Trading
 
-Signed writes are submitted through `POST /v1/commands`; see the [authentication guide](../developers/authentication.md).
+Signed writes are submitted through `POST /v1/commands`; see the [authentication guide](../developers/authentication.md). Which commands it accepts, who signs them and their nonce lanes: [Commands overview](trading/commands.md).
 
 ## POST /v1/commands
 
