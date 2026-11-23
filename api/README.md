@@ -1,8 +1,8 @@
 # API 规格发布副本
 
-`openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `ec259bc755dd65f9434e1e5f173a17211d31bed6` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
+`openapi-v1.yaml` 原样复制自 dex-os `dev` 分支提交 `eaffd1cb889b71f60781ee05da138e70d0c07a11` 的 `web/gitbook/openapi-v1.yaml`。该 YAML 是 dex-os 用 `scripts/gen-gitbook-openapi.mjs` 从 `web/openapi-v1.json` 加覆盖层生成的 GitBook 版，接口契约与 JSON 相同，只改了服务器地址、tag 页面标题和给读者看的描述。
 
-`openapi-v1.zh.yaml` 原样复制自 dex-os `dev` 分支提交 `ec259bc755dd65f9434e1e5f173a17211d31bed6` 的 `web/gitbook/openapi-v1.zh.yaml`，是同一份规格的中文版：路径、字段、枚举和错误码与英文版完全相同，只翻译了给读者看的说明（译文在 dex-os 的 `web/gitbook/strings-v1.zh.json`）。
+`openapi-v1.zh.yaml` 原样复制自 dex-os `dev` 分支提交 `eaffd1cb889b71f60781ee05da138e70d0c07a11` 的 `web/gitbook/openapi-v1.zh.yaml`，是同一份规格的中文版：路径、字段、枚举和错误码与英文版完全相同，只翻译了给读者看的说明（译文在 dex-os 的 `web/gitbook/strings-v1.zh.json`）。
 
 英文页面引用 `openapi-v1.yaml`，中文页面引用 `openapi-v1.zh.yaml`。两份都不手工修改字段或翻译；译文有误改上游的译文文件。上面两行的格式供同步工作流改写，不要改动句式。
 
@@ -15,7 +15,7 @@ API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi �
 
 正文中的 API 块固定引用本仓某个提交的规格，避免预览和回滚时读取不同版本；上方 main 地址用于 GitBook 手动导入最新发布副本。
 
-当前规格的 servers 是 `https://{host}`，`host` 缺省为占位域名 `api.dexos.invalid`，GitBook 上的交互请求要等运营方给出公开 API 地址、上游改覆盖层并重新生成后才能用。页面导入、语言切换和交互调用仍需 GitBook 验收。
+规格的 servers 是 `https://dex-preview.unibook.site`(预览网络,只有测试资金),并带 `x-enable-proxy: true`:网关不发跨域头,GitBook 的 Test it 经 GitBook 转发。签名命令(`POST /v1/commands`)要在浏览器里签名,Test it 发不了,交易页每条命令另给 API 调试台链接 `https://dex-preview.unibook.site/app/api-playground/?cmd=<命令>`。页面导入、语言切换和交互调用仍需 GitBook 验收。
 
 ## 同步
 

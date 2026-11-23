@@ -12,10 +12,9 @@ info:
 
     ## Quick start
 
-    1. `GET /v1/network` → `canonicalManifest` for the SDK.
-    2. `GET /v1/markets` → `symbol`, decimals, `signingMarketId`; `GET /v1/exchange` → tokens.
-    3. `GET /v1/account/nonce?address=…&lane=trade` → `nonce`, `signingAccountId` (`&signer=` for an API wallet).
-    4. Sign with the SDK; `POST /v1/commands` `{"command":"0x…"}` → `202 {requestId, digest, seq}`; poll
+    1. `GET /v1/markets` → `symbol`, decimals, `signingMarketId`.
+    2. `GET /v1/account/nonce?address=…&lane=trade` → `nonce`, `signingAccountId` (`&signer=` for an API wallet).
+    3. Sign with the SDK; `POST /v1/commands` `{"command":"0x…"}` → `202 {requestId, digest, seq}`; poll
        `GET /v1/requests/{requestId}` until `Executed`.
 
     ## Signed commands and nonces
@@ -85,16 +84,9 @@ info:
 
     **`execution`**: `20000 + execution error code` (append-only); the string code is the execution-layer error name, e.g. `InsufficientMargin`, `SignatureExpired`, `NonceBelowFloor`, `NonceAlreadyConsumed`, `PostOnlyWouldCross`
 servers:
-  - url: "https://{host}"
-    description: DEXOS gateway
-    variables:
-      host:
-        default: api.dexos.invalid
-        description: Host of the DEXOS gateway you integrate with
+  - url: "https://dex-preview.unibook.site"
+    description: Preview network (test funds only)
 tags:
-  - name: Exchange
-    x-page-title: Exchange
-    x-page-description: Signing domain, chain and token tables, exchange-wide configuration
   - name: Market data
     x-page-title: Market data
     x-page-description: Markets, order books, trades, candles, prices and funding
@@ -231,7 +223,7 @@ tags:
 
       ### Rules
 
-      - Snapshot channels (`book` / `bbo` / `prices` / `account` / `positions` / `orders`) send `isSnapshot:true` on subscribe; all but `orders` then push at most once per block (about 1 s), only on change
+      - Snapshot channels (`book` / `bbo` / `prices` / `account` / `positions` / `orders`) send `isSnapshot:true` on subscribe; all but `orders` then push on change: `book` / `bbo` at most every 250 ms, others per block (~1 s)
       - Errors answering `subscribe` / `unsubscribe` echo the request `id`, `data.method` and `data.subscription`. Unsubscribing an unknown subscription is an error (`GatewayNotFound`)
       - `orders`: snapshot of all open orders (conditional ones with `trigger`), then one frame per accept / fill / cancel / expiry. Apply by `orderId`: keep if `status` is `open`, else drop; a snapshot replaces the set
       - `candles`: one frame per fill with the current bar's latest state (keep the last frame); a new bar starts when the interval rolls over
@@ -241,17 +233,18 @@ tags:
       - The WebSocket connection carries no rate-limit weight; REST limits (429 with `retry-after`) are in the overview
       - Private channels accept `vault` instead of `address` / `subaccount` (not both); frames then carry `vault`
       - Channels with `symbol` also take `kind` (`perp` | `spot`), required when a perp and a spot market share the symbol; frames carry `kind`
+      - `orders` / `fills` with `stage:"matched"`: an order command's frames come once matched, marked `stage`, same `id`s, never again; the rest when settled. One stage per channel and account
 
       ### Channels
 
       | Channel | Params | Data |
       |---|---|---|
-      | `prices` | — | Same body as `GET /v1/prices`: `{prices:[Price], ts, window24h}` |
+      | `prices` | `delta?` | Body of `GET /v1/prices`: `{prices:[Price], ts, window24h}`. `delta:true`: after the snapshot, only changed rows (replace by `kind` + `symbol`); a new market set resends the snapshot. One mode per connection |
       | `book` | `symbol`, `kind?`, `depth?`, `aggTicks?` | Book with `depth` levels per side (1-100, default 20) and `aggTicks` as on `GET /v1/markets/{symbol}/book`; both echoed, invalid ones are an error frame. Several `aggTicks` may share a connection |
       | `bbo` | `symbol`, `kind?` | Best bid and offer: `{symbol, kind, bid:[price,size]\|null, ask, ts}` |
       | `trades` | `symbol`, `kind?` | One frame per trade: `{symbol, kind, id, price, size, side, ts}` |
-      | `orders` | `address`, `subaccount?`, `vault?` | Snapshot: `{address, subaccount, orders:[OpenOrder]}`. Update: `{orderId, clientOrderId, symbol, kind, event, status, remaining, side?, price?, size?, filled?, lastFilled?, fillId?, ts}` |
-      | `fills` | `address`, `subaccount?`, `vault?` | Fill (the `GET /v1/account/fills` row) + `address`, `subaccount` |
+      | `orders` | `address`, `subaccount?`, `vault?`, `stage?` | Snapshot: `{address, subaccount, orders:[OpenOrder]}`. Update: `{orderId, clientOrderId, symbol, kind, event, status, remaining, side?, price?, size?, filled?, lastFilled?, fillId?, ts}` |
+      | `fills` | `address`, `subaccount?`, `vault?`, `stage?` | Fill (the `GET /v1/account/fills` row) + `address`, `subaccount` |
       | `account` | `address`, `subaccount?`, `vault?` | Account (the `GET /v1/account` body, same view) |
       | `positions` | `address`, `subaccount?`, `vault?` | `{address, subaccount, positions:[Position]}` (the `GET /v1/account/positions` body) |
       | `candles` | `symbol`, `kind?`, `interval` | Candle `{symbol, kind, i, t, T, o, h, l, c, v}`, current bar on every fill; `interval` as in REST (unknown: error frame) |
@@ -1669,23 +1662,6 @@ paths:
           "$ref": "#/components/responses/BadRequest"
         "404":
           "$ref": "#/components/responses/NotFound"
-  /v1/exchange:
-    get:
-      description: "Connection parameters: EIP-712 domain, chainId, deposit address, token table, version, `serverTime`, `fundingTickSec`, vault fee and minimum deposit (`vault`), numeric conventions. **Never hard-code the domain**: after a chain or contract change every signature then fails (401)."
-      operationId: v1_exchange
-      parameters: []
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Exchange"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-      summary: Connection parameters and conventions
-      tags:
-        - Exchange
   /v1/fees:
     get:
       tags:
@@ -2232,7 +2208,7 @@ paths:
         - Account
       summary: Request receipt
       description: |-
-        Returns the receipt of a command sent to `POST /v1/commands`. Only query parameter: `digest`. Never cached.
+        Returns the receipt of a command sent to `POST /v1/commands`. Query parameters: `digest` or `wait=match`. Never cached.
 
         `status`:
 
@@ -2287,6 +2263,14 @@ paths:
             type: string
             pattern: "^0x[0-9a-f]{64}$"
           description: "Optional: the `digest` `POST /v1/commands` returned for your signed version (one request id may be signed more than once); another version's receipt answers 409 `Conflict`, its authorization refusal is not returned"
+        - name: wait
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - match
+          description: "`match` (not with `digest`): an order command's outcome as soon as matched, waiting up to 5 s (`stage: \"matched\"`, `source: \"MatchReceipt\"`); else as without it, settled with `stage: \"folded\"`"
       responses:
         "200":
           description: "Known request: `status` is `Accepted`, `Executed` or `AuthorizationRejected`"
@@ -2332,8 +2316,10 @@ paths:
                         type: array
                         items:
                           type: object
+                        description: "One per batch input: `inputIndex`, `kind`, `state`, `orderId` / `replacedOrderId`. A `BatchReplace3` cancel or modify that targets an earlier command's new order by position adds `ref` `{market, seq, sub, item}`"
                       source:
                         type: string
+                  - "$ref": "#/components/schemas/RequestMatched"
         "400":
           description: "Malformed request id, `digest` or `x-dexos-min-seq`, or an unsupported query parameter (`invalid_request_id`, `invalid_request_digest`, `invalid_min_seq`, `unsupported_request_parameter`); says nothing about the request"
           content:
@@ -2416,26 +2402,6 @@ paths:
           "$ref": "#/components/responses/NotFound"
         "503":
           "$ref": "#/components/responses/Unavailable"
-  /v1/time:
-    get:
-      tags:
-        - Exchange
-      summary: Server time
-      description: "Server time `{serverTime}`, Unix ms; signature `expiresAt` is checked against it."
-      operationId: v1_time
-      parameters: []
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  serverTime:
-                    type: integer
-                    format: int64
-                    description: Unix ms
   /v1/vaults:
     get:
       tags:
@@ -2837,8 +2803,8 @@ paths:
       summary: Submit a signed command
       description: |-
         Submits one fully signed command, `{"command": "0x…"}` (the SDK's canonical encoding, lower-case hex). Nonce,
-        validity window and signatures must already be inside. No query parameters
-        (400 `unsupported_submission_parameter`).
+        validity window and signatures must already be inside. Query parameter: only
+        `wait=match`, else 400 `unsupported_submission_parameter`.
 
         - `202` = sequenced only; `200` with `duplicate: true` = already admitted. 400 / 403 / 409 / 422 / 429 = refused
           before sequencing, nonce untouched (e.g. `malformed_signed_command`, `unsupported_command`,
@@ -2858,6 +2824,15 @@ paths:
           none in the settlement token, and no position there.
         - **Backpressure**: 503 `GatewayHistoryBackpressure` + `Retry-After` pauses writes except cancels.
       operationId: v1_commands
+      parameters:
+        - name: wait
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - match
+          description: "Order commands only (else 400 `wait_match_unsupported_command`): answer `200` with the outcome once matched (`stage`); balances and positions settle shortly after. Timeout: `202` with `resultsPending: true`"
       requestBody:
         required: true
         content:
@@ -2876,22 +2851,24 @@ paths:
                   description: "Signed command in canonical binary encoding: `0x` + lower-case hex, at most 1 MiB decoded. Non-canonical bytes: 400 `malformed_signed_command`"
       responses:
         "200":
-          description: "Identical command (same `requestId` and `digest`) already admitted: the first receipt with `duplicate: true`; `seq` / `sub` / `x-dexos-seq` are the first admission's"
+          description: "Identical command (same `requestId` and `digest`) already admitted: the first receipt with `duplicate: true`; `seq` / `sub` / `x-dexos-seq` are the first admission's; with `wait=match`, the outcome"
           headers:
             x-dexos-seq:
               "$ref": "#/components/headers/x-dexos-seq"
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/CommandResubmitted"
+                oneOf:
+                  - "$ref": "#/components/schemas/CommandResubmitted"
+                  - "$ref": "#/components/schemas/CommandMatched"
         "202":
-          description: "Sequenced (`seq`, `sub`; `seq` also in `x-dexos-seq`), not yet authorized or executed (`executionKnown: false`, `nonceConsumed: null`). Confirm with `GET /v1/requests/{requestId}`"
+          description: "Sequenced (`seq`, `sub`; `seq` also in `x-dexos-seq`), not yet authorized or executed (`executionKnown: false`, `nonceConsumed: null`). Confirm with `GET /v1/requests/{requestId}`; `wait=match` timed out too"
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandAccepted"
         "400":
-          description: "Refused before sequencing, nonce untouched: `malformed_signed_command`, `unsupported_command`, `invalid_command_identity`, `unsupported_submission_parameter`, `invalid_signature_encoding`, `invalid_signature`, `signature_order`, `threshold_not_met`, `authority_epoch_mismatch`, `grant_revoked`, `grant_expired`, `nonce_below_floor`, `nonce_too_far_ahead`, `address_already_has_account`, `precheck_rejected`, `GatewayBuilderUnknown`"
+          description: "Refused before sequencing, nonce untouched: `malformed_signed_command`, `unsupported_command`, `invalid_command_identity`, `unsupported_submission_parameter`, `wait_match_unsupported_command`, `invalid_signature_encoding`, `invalid_signature`, `signature_order`, `threshold_not_met`, `authority_epoch_mismatch`, `grant_revoked`, `grant_expired`, `nonce_below_floor`, `nonce_too_far_ahead`, `address_already_has_account`, `precheck_rejected`, `GatewayBuilderUnknown`"
           content:
             application/json:
               schema:
@@ -2946,6 +2923,174 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandError"
+  /v1/oracle/markets:
+    get:
+      tags:
+        - Oracle
+      summary: Oracle round parameters of every market
+      description: "Oracle round parameters of every market that has an oracle policy, from one ledger view, so a reporter or relayer reads all its markets in one request instead of one per market. Each `oracles[]` item is exactly the `oracle` object of `GET /v1/oracle/markets/{id}`; the other fields are the same view header. Markets without an oracle policy are left out. 503 if the ledger view is unavailable."
+      operationId: v1_oracle_markets
+      responses:
+        "200":
+          description: Oracle round parameters of every market with an oracle policy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  networkId:
+                    type: string
+                  genesisHash:
+                    type: string
+                  ledgerEpoch:
+                    type: string
+                  manifestHash:
+                    type: string
+                  inputSeq:
+                    type: string
+                  hostLogIndex:
+                    type: string
+                  inputPrefix:
+                    type: string
+                  oracles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        marketId:
+                          type: integer
+                        policyVersion:
+                          type: string
+                        policyStatus:
+                          type: integer
+                        feedId:
+                          type: string
+                        feedVersion:
+                          type: string
+                        sourceType:
+                          type: integer
+                        setId:
+                          type: string
+                        setEpoch:
+                          type: string
+                        setCurrentEpoch:
+                          type:
+                            - string
+                            - "null"
+                          description: "Reporter set's current epoch; null if the set is missing"
+                        setFollowing:
+                          type: boolean
+                          description: "Policy follows the reporter set's current epoch (`setEpoch` = \"0\")"
+                        recipe:
+                          anyOf:
+                            - "$ref": "#/components/schemas/OracleRecipe"
+                            - type: "null"
+                          description: "Recipe of a recipe feed (`sourceType` 3); else null"
+                        recipeHash:
+                          type:
+                            - string
+                            - "null"
+                          description: "Recipe hash, 0x hex (domain `DEXOS/PriceRecipe/v1`); null for other feeds"
+                        algorithmId:
+                          type: integer
+                        algorithmVersion:
+                          type: integer
+                        currentRound:
+                          type: string
+                        unitHash:
+                          type: string
+                        priceDecimals:
+                          type: integer
+                        priceUnit:
+                          type: object
+                          properties:
+                            numerator:
+                              type: string
+                            denominator:
+                              type: string
+                        minIndependentSources:
+                          type: integer
+                          description: Minimum independent source families per round
+                        freshnessMs:
+                          type: string
+                          description: Report freshness window, ms
+                        futureSkewMs:
+                          type: string
+                          description: Max lead of an observation timestamp over trusted time, ms
+                        parameters:
+                          type: object
+                          description: "Algorithm parameters as stored: `schemaId` / `schemaVersion` / `fields[{fieldId, kind, value}]`; integers as decimal strings"
+                        maxEvidenceBytes:
+                          type: integer
+                          description: Maximum evidence size, bytes
+                        reference:
+                          type:
+                            - object
+                            - "null"
+                          description: "Previous effective price `{policyVersion, priceAtoms}` under this policy version; null on its first round"
+                          properties:
+                            policyVersion:
+                              type: string
+                            priceAtoms:
+                              type: string
+                        threshold:
+                          type:
+                            - integer
+                            - "null"
+                          description: "Reporter set threshold (min reports per round); null if the set does not exist"
+                        reporters:
+                          type: array
+                          description: "Set members, ascending: address, last accepted sequence in the current epoch (`\"0\"` if none), bound sources and source families"
+                          items:
+                            type: object
+                            properties:
+                              address:
+                                type: string
+                              sequence:
+                                type: string
+                              sources:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    sourceId:
+                                      type: string
+                                    sourceFamily:
+                                      type: string
+                        marketDex:
+                          type: integer
+                          description: "Dex owning the market; its authority sets the oracle policy"
+                        oracleStale:
+                          type: boolean
+                          description: Ledger oracle-stale flag
+                        feedOwner:
+                          type:
+                            - string
+                            - "null"
+                          enum:
+                            - Protocol
+                            - Dex
+                            - null
+                          description: Owner of the policy feed
+                        feedDex:
+                          type:
+                            - integer
+                            - "null"
+                        setOwner:
+                          type:
+                            - string
+                            - "null"
+                          enum:
+                            - Protocol
+                            - Dex
+                            - null
+                          description: "Reporter set owner; null if the set is not configured"
+                        setDex:
+                          type:
+                            - integer
+                            - "null"
+        "503":
+          description: "Ledger read view unavailable or not ready; retry"
   "/v1/oracle/markets/{id}":
     get:
       tags:
@@ -3211,6 +3356,23 @@ paths:
             application/json:
               schema:
                 type: object
+                properties:
+                  businessParameters:
+                    type: object
+                    properties:
+                      marketsHardCap:
+                        type: object
+                        description: "Platform-wide market limit; `cap` 0 means no Council limit (the protocol maximum applies). `SetMarketsHardCap` takes no `expectedVersion` and the ledger keeps no version, so `version` is always null."
+                        required:
+                          - cap
+                          - version
+                        properties:
+                          cap:
+                            type: integer
+                            minimum: 0
+                          version:
+                            type: string
+                            nullable: true
         "503":
           description: "Ledger state not ready on this node; retry later"
   "/v1/oracle/reporter-sets/{id}/followers":
@@ -3588,168 +3750,6 @@ paths:
           description: "Unknown custody group (`unknown_custody_group`)"
         "503":
           description: "Ledger view not ready; retry"
-  /v1/checkpoints/latest:
-    get:
-      tags:
-        - Exchange
-      summary: Global checkpoint progress
-      description: |-
-        Global checkpoint progress and per-custody-group acceptance. Each period the ledger cuts one global root over all non-frozen custody groups; each custody chain accepts roots independently and may skip some, so `acceptedSeq` differs per group.
-
-        - `latestCut` is null before the first cut.
-        - Poll `groupCatalogVersion` to discover new custody groups; fetch a new group's registration from `/v1/custody/{key}`.
-      operationId: v1_checkpoints_latest
-      parameters: []
-      responses:
-        "200":
-          description: "Ledger snapshot view; u64 values as decimal strings"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  manifestHash:
-                    type: string
-                  nextCheckpointSeq:
-                    type: string
-                  lastCutTimeMs:
-                    type: string
-                  checkpointPeriodMs:
-                    type: string
-                  latestCut:
-                    type: object
-                    nullable: true
-                    properties:
-                      seq:
-                        type: string
-                      inputEnd:
-                        type: string
-                      cutTimeMs:
-                        type: string
-                      groups:
-                        type: array
-                        items:
-                          type: string
-                  groups:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        custodyKeyHash:
-                          type: string
-                        acceptedSeq:
-                          type: string
-                          nullable: true
-                        acceptedCheckpointId:
-                          type: string
-                          nullable: true
-                        mode:
-                          type: string
-                          enum:
-                            - normal
-                            - escapePending
-                            - frozen
-                        registrationHash:
-                          type: string
-                        firstCheckpointSeq:
-                          type: string
-                  groupCatalogVersion:
-                    type: string
-                required:
-                  - manifestHash
-                  - nextCheckpointSeq
-                  - latestCut
-                  - groups
-        "503":
-          description: "Ledger state not available on this node yet; retry later"
-  /v1/network:
-    get:
-      tags:
-        - Exchange
-      summary: Network identity
-      description: "The Manifest and network identity pinned by this node. Pass `canonicalManifest` to sdk-wasm `network(manifestHex)` to get each constructor's `network` argument; do not hard-code it."
-      operationId: v1_network
-      parameters:
-        - name: x-dexos-expect-manifest
-          in: header
-          required: false
-          description: "Expected Manifest hash (0x + 64 hex digits); 503 if it differs from this node's or the header is repeated"
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Manifest and network identity
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - canonicalEncoding
-                  - canonicalManifest
-                  - manifestHash
-                  - profile
-                  - networkId
-                  - genesisHash
-                  - ledgerEpoch
-                  - nodeChainId
-                  - nodeVerifier
-                  - localTrustValidated
-                  - activationStatus
-                  - businessReady
-                properties:
-                  canonicalEncoding:
-                    type: string
-                    enum:
-                      - hex
-                  canonicalManifest:
-                    type: string
-                    description: Canonical Manifest bytes (0x hex)
-                  manifestHash:
-                    type: string
-                    description: Manifest hash (bytes32)
-                  profile:
-                    type: integer
-                    description: Manifest profile number
-                  networkId:
-                    type: string
-                    description: "Network id (`bytes32`, 0x hex)"
-                  genesisHash:
-                    type: string
-                    description: "Genesis hash (`bytes32`, 0x hex)"
-                  ledgerEpoch:
-                    type: string
-                    description: Ledger epoch, decimal string
-                  nodeChainId:
-                    type: string
-                    description: "`chainId` of the EIP-712 domain (uint256, 0x hex)"
-                  nodeVerifier:
-                    type: string
-                    description: "`verifyingContract` of the EIP-712 domain (address)"
-                  localTrustValidated:
-                    type: boolean
-                  activationStatus:
-                    type: string
-                  businessReady:
-                    type: boolean
-        "503":
-          description: "`x-dexos-expect-manifest` differs from this node's Manifest or was sent twice: `error.code` `upstream_manifest_mismatch`, `error.details.manifestHash`"
-  /v1/time/certified:
-    get:
-      tags:
-        - Exchange
-      summary: Certified time
-      description: "Certified time: sequence, previous certificate digest, timestamp, pause state, and the epochs and members of the chain-fact and time services."
-      operationId: v1_time_certified
-      parameters: []
-      responses:
-        "200":
-          description: "Ledger snapshot view; u64 values as decimal strings"
-          content:
-            application/json:
-              schema:
-                type: object
-        "503":
-          description: "Ledger read view not ready yet; retry later"
   /v1/governance/council:
     get:
       tags:
@@ -3767,72 +3767,6 @@ paths:
                 type: object
         "503":
           description: "Ledger state not ready on this node; retry later"
-  /v1/cluster/members:
-    get:
-      tags:
-        - Exchange
-      summary: Cluster members
-      description: "Current Raft members as applied by the responding node: id, role (`voter` / `learner`), certificate pin (SHA-256 of the SPKI) and kind; **no** addresses. Operator-run compute nodes serve the same shape, which `council-check --members-urls` uses to cross-check the platform."
-      operationId: v1_cluster_members
-      parameters: []
-      responses:
-        "200":
-          description: Members
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  index:
-                    type:
-                      - integer
-                      - "null"
-                    format: uint64
-                    description: Log index of the membership configuration
-                  committed:
-                    type: boolean
-                  joint:
-                    type: boolean
-                    description: Joint consensus in progress (voters being replaced)
-                  members:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          format: uint64
-                          description: Node id (monotonic, never reused)
-                        role:
-                          type: string
-                          enum:
-                            - voter
-                            - learner
-                        spki:
-                          type:
-                            - string
-                            - "null"
-                          pattern: "^[0-9a-f]{64}$"
-                          description: "SHA-256 of the certificate's SPKI (64 lower-case hex chars); null only in single-node mode"
-                        kind:
-                          type:
-                            - string
-                            - "null"
-                          enum:
-                            - core
-                            - edge
-                            - elastic
-                            - compute
-                            - null
-                          description: "`#role=` suffix of the membership record; only `core` nodes can become voters; null when absent"
-                      required:
-                        - id
-                        - role
-                        - spki
-                required:
-                  - members
-        "503":
-          description: Node not ready
   /v1/accounts:
     get:
       tags:
@@ -6458,111 +6392,6 @@ paths:
                 properties:
                   error:
                     type: string
-  /v1/site:
-    get:
-      tags:
-        - Exchange
-      summary: Homepage for this entry
-      description: |-
-        Homepage content and brand for this entry domain (from `Host`, or `X-Forwarded-Host` behind trusted proxies). Any query parameter: 400 `GatewayBadRequest`.
-
-        - `source`: `tenant` or `default`; `defaultLayer`: `image` (built-in) or `platform`; `sha` = SHA-256 of `content`.
-        - `ETag` = SHA-256 of the body; a matching `If-None-Match` returns 304.
-        - A published tenant homepage that fails re-check or cannot be read yet returns 503 `GatewayUnavailable`, never the default.
-      operationId: v1_site
-      responses:
-        "200":
-          description: The homepage
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: "\"<sha256 of the body>\""
-            Cache-Control:
-              schema:
-                type: string
-                enum:
-                  - no-cache
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - source
-                  - defaultLayer
-                  - version
-                  - sha
-                  - schemaVersion
-                  - content
-                  - mediaOrigins
-                properties:
-                  source:
-                    type: string
-                    enum:
-                      - tenant
-                      - default
-                  defaultLayer:
-                    type: string
-                    enum:
-                      - image
-                      - platform
-                  version:
-                    type:
-                      - integer
-                      - "null"
-                  sha:
-                    type: string
-                    description: "SHA-256 of `content` (lowercase hex)"
-                  schemaVersion:
-                    type: integer
-                  content:
-                    type: object
-                    description: Homepage content, schema v1
-                  mediaOrigins:
-                    type: array
-                    items:
-                      type: string
-        "304":
-          description: "Not modified (`If-None-Match` matched the current `ETag`)"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  /v1/site/preview-parents:
-    get:
-      tags:
-        - Exchange
-      summary: Who may frame the console preview
-      description: "Origins that may frame the console preview `https://<site domain>/app/preview/` (`parents`, same list as its `Content-Security-Policy: frame-ancestors`; empty = none) and allowed media origins (`mediaOrigins`, as in `/v1/site`). The Host header selects the tenant; any query parameter returns 400 `GatewayBadRequest`. Sent with `Cache-Control: no-store`; counts against the per-IP rate limit."
-      operationId: v1_site_preview_parents
-      responses:
-        "200":
-          description: The console origins and media origins
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                enum:
-                  - no-store
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - parents
-                  - mediaOrigins
-                properties:
-                  parents:
-                    type: array
-                    items:
-                      type: string
-                    description: "Serialized origins (`https://host[:port]`; `http` only on loopback), matched as strings against `?parent=`"
-                  mediaOrigins:
-                    type: array
-                    items:
-                      type: string
-        "400":
-          "$ref": "#/components/responses/BadRequest"
 components:
   headers:
     x-dexos-seq:
@@ -7242,6 +7071,7 @@ components:
           required:
             - version
             - markets
+            - migrations
           properties:
             version:
               type: integer
@@ -7287,6 +7117,60 @@ components:
                     items:
                       type: string
                     description: "Category codes in display order (empty if none); names in `categories`"
+            migrations:
+              type: array
+              description: "This catalog's market migrations (an asset moving to another market), by `fromSymbol`, `kind`, then `toSymbol`; empty if none. A migration does not cancel open orders on `fromSymbol`; tell users to cancel them"
+              items:
+                type: object
+                required:
+                  - fromSymbol
+                  - fromDisplay
+                  - toSymbol
+                  - toDisplay
+                  - kind
+                  - state
+                  - effectiveMs
+                  - graceUntilMs
+                properties:
+                  fromSymbol:
+                    type: string
+                    description: Full symbol of the market being migrated from
+                  fromDisplay:
+                    type: string
+                    description: "Name to show for `fromSymbol`: its `markets[].display` if it is in this catalog, else the symbol without the `<dex code>:` prefix"
+                    examples:
+                      - BTC-USD
+                  toSymbol:
+                    type: string
+                    description: Full symbol of the market being migrated to
+                  toDisplay:
+                    type: string
+                    description: "Name to show for `toSymbol`, by the same rule as `fromDisplay`"
+                    examples:
+                      - BTC-USD
+                  kind:
+                    type: string
+                    enum:
+                      - perp
+                      - spot
+                    description: Market type of both markets
+                  state:
+                    type: string
+                    enum:
+                      - scheduled
+                      - postponed
+                      - executed
+                    description: "`scheduled`: announced; at `effectiveMs` a perp `fromSymbol` turns `closeOnly`, a spot one is removed. `postponed`: due, not done, time not set. `executed` (perps): done; `fromSymbol` is `closeOnly` until `graceUntilMs`"
+                  effectiveMs:
+                    type: integer
+                    format: uint64
+                    description: "Unix ms: the planned time (`scheduled`, `postponed`) or when it took effect (`executed`)"
+                  graceUntilMs:
+                    type:
+                      - integer
+                      - "null"
+                    format: uint64
+                    description: "Unix ms when `fromSymbol` leaves the catalog; `executed` only, otherwise null"
         categories:
           type: array
           items:
@@ -8166,7 +8050,7 @@ components:
           type:
             - integer
             - "null"
-          description: "Spot only: base token id (the `token` in `deposit.tokens[]` of `GET /v1/exchange`); `null` for perps"
+          description: "Spot only: base token id; `null` for perps"
         quoteToken:
           type:
             - integer
@@ -9035,7 +8919,7 @@ components:
             - integer
             - "null"
           format: int64
-          description: "Next settlement due: the first multiple of `fundingTickSec` (`GET /v1/exchange`) since the Unix epoch after `lastFundingMs`; actual settlement may be one sample later. Null for spot and before the first sample"
+          description: "Next settlement due: the first multiple of the funding interval since the Unix epoch after `lastFundingMs`; actual settlement may be one sample later. Null for spot and before the first sample"
         openInterest:
           type:
             - string
@@ -9768,6 +9652,11 @@ components:
           type: boolean
           enum:
             - false
+        resultsPending:
+          type: boolean
+          enum:
+            - true
+          description: "Only with `wait=match`: no outcome arrived in time"
     RequestFact:
       type: object
       required:
@@ -10723,6 +10612,178 @@ components:
                 - Council
                 - Owner
               description: "Current governor: `Council` for a dex handed to the Council, `Owner` for an account-owned dex"
+    CommandMatched:
+      type: object
+      required:
+        - status
+        - stage
+        - requestId
+        - digest
+        - commandHash
+        - seq
+        - sub
+        - executionKnown
+        - duplicate
+        - businessRejected
+        - events
+        - networkId
+        - genesisHash
+        - manifestHash
+        - ledgerEpoch
+      properties:
+        networkId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        genesisHash:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        manifestHash:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        ledgerEpoch:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Ledger epoch; decimal string"
+        status:
+          type: string
+          enum:
+            - Executed
+            - AuthorizationRejected
+        stage:
+          type: string
+          enum:
+            - matched
+            - folded
+          description: "`matched`: from the matching engine, before balances and positions settle (read with `x-dexos-min-seq`); `folded`: settled, as `GET /v1/requests/{requestId}` returns"
+        requestId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        digest:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        commandHash:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        seq:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Log position (host log index) the command was sequenced at; decimal string"
+        sub:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        executionKnown:
+          type: boolean
+        nonceConsumed:
+          type: boolean
+          nullable: true
+        duplicate:
+          type: boolean
+          enum:
+            - false
+        outcome:
+          type: string
+          enum:
+            - Succeeded
+            - Failed
+        stableError:
+          type: string
+        errorCode:
+          type: integer
+        businessRejected:
+          type: string
+          nullable: true
+          description: "Why the order was refused (e.g. `InsufficientMargin`, `PostOnlyWouldCross`); `null` when accepted"
+        items:
+          type: array
+          items:
+            type: object
+          description: Per-item results of a batch command
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              kind:
+                type: string
+              data:
+                type: object
+          description: "Fills, accepted and canceled orders of this command; no balance or position events at `matched`"
+        takerRequestId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+    RequestMatched:
+      type: object
+      required:
+        - requestId
+        - source
+        - stage
+        - status
+        - seq
+        - sub
+        - executionKnown
+        - businessRejected
+        - events
+      properties:
+        status:
+          type: string
+          enum:
+            - Executed
+            - AuthorizationRejected
+        stage:
+          type: string
+          enum:
+            - matched
+            - folded
+          description: "`matched`: from the matching engine, before balances and positions settle (read with `x-dexos-min-seq`); `folded`: settled, as `GET /v1/requests/{requestId}` returns"
+        requestId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        seq:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "Log position (host log index) the command was sequenced at; decimal string"
+        sub:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        executionKnown:
+          type: boolean
+        nonceConsumed:
+          type: boolean
+          nullable: true
+        outcome:
+          type: string
+          enum:
+            - Succeeded
+            - Failed
+        stableError:
+          type: string
+        errorCode:
+          type: integer
+        businessRejected:
+          type: string
+          nullable: true
+          description: "Why the order was refused (e.g. `InsufficientMargin`, `PostOnlyWouldCross`); `null` when accepted"
+        items:
+          type: array
+          items:
+            type: object
+          description: Per-item results of a batch command
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              kind:
+                type: string
+              data:
+                type: object
+          description: "Fills, accepted and canceled orders of this command; no balance or position events at `matched`"
+        source:
+          type: string
+          enum:
+            - MatchReceipt
 x-error-codes:
   gateway:
     GatewayBadRequest: 10400
@@ -10801,7 +10862,7 @@ x-websocket:
       isSnapshot: false
       epoch: "<private channels only>"
   rules:
-    - "Snapshot channels (`book` / `bbo` / `prices` / `account` / `positions` / `orders`) send `isSnapshot:true` on subscribe; all but `orders` then push at most once per block (about 1 s), only on change"
+    - "Snapshot channels (`book` / `bbo` / `prices` / `account` / `positions` / `orders`) send `isSnapshot:true` on subscribe; all but `orders` then push on change: `book` / `bbo` at most every 250 ms, others per block (~1 s)"
     - "Errors answering `subscribe` / `unsubscribe` echo the request `id`, `data.method` and `data.subscription`. Unsubscribing an unknown subscription is an error (`GatewayNotFound`)"
     - "`orders`: snapshot of all open orders (conditional ones with `trigger`), then one frame per accept / fill / cancel / expiry. Apply by `orderId`: keep if `status` is `open`, else drop; a snapshot replaces the set"
     - "`candles`: one frame per fill with the current bar's latest state (keep the last frame); a new bar starts when the interval rolls over"
@@ -10811,10 +10872,12 @@ x-websocket:
     - "The WebSocket connection carries no rate-limit weight; REST limits (429 with `retry-after`) are in the overview"
     - "Private channels accept `vault` instead of `address` / `subaccount` (not both); frames then carry `vault`"
     - "Channels with `symbol` also take `kind` (`perp` | `spot`), required when a perp and a spot market share the symbol; frames carry `kind`"
+    - "`orders` / `fills` with `stage:\"matched\"`: an order command's frames come once matched, marked `stage`, same `id`s, never again; the rest when settled. One stage per channel and account"
   channels:
     prices:
-      params: []
-      data: "Same body as `GET /v1/prices`: `{prices:[Price], ts, window24h}`"
+      params:
+        - "delta?"
+      data: "Body of `GET /v1/prices`: `{prices:[Price], ts, window24h}`. `delta:true`: after the snapshot, only changed rows (replace by `kind` + `symbol`); a new market set resends the snapshot. One mode per connection"
     book:
       params:
         - symbol
@@ -10837,12 +10900,14 @@ x-websocket:
         - address
         - "subaccount?"
         - "vault?"
+        - "stage?"
       data: "Snapshot: `{address, subaccount, orders:[OpenOrder]}`. Update: `{orderId, clientOrderId, symbol, kind, event, status, remaining, side?, price?, size?, filled?, lastFilled?, fillId?, ts}`"
     fills:
       params:
         - address
         - "subaccount?"
         - "vault?"
+        - "stage?"
       data: "Fill (the `GET /v1/account/fills` row) + `address`, `subaccount`"
     account:
       params:
@@ -10878,3 +10943,4 @@ x-websocket:
         - "symbol?"
         - "address?"
       data: "Raw execution-layer events (Event) with `symbol`"
+x-enable-proxy: true
