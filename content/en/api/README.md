@@ -6,7 +6,7 @@ Read the developer guides for decimal scaling, signing, and receipt handling. Ac
 
 **Test it** sends requests to the preview network `https://dex-preview.unibook.site` (test funds only). Signed writes need a signature made on the client and go through `POST /v1/commands`; to sign and submit one from the browser, use the [API playground](https://dex-preview.unibook.site/app/api-playground/). Each command on the [Trading](trading/commands.md) pages links to it.
 
-[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6496bb9a2d9c33f3809ed74701b360d72865ca44/api/openapi-v1.yaml)
+[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/e04c6559f31ee164c06ff8742170aa08c6e29ec4/api/openapi-v1.yaml)
 
 - [Market data](market-data.md)
 - [Account](account.md)
@@ -14,6 +14,10 @@ Read the developer guides for decimal scaling, signing, and receipt handling. Ac
 - [Subscriptions](subscriptions.md)
 - [Funds](funds.md)
 - [Trading](trading.md)
-- [Oracle](oracle.md)
-- [Merchants](merchants.md)
-- [Governance](governance.md)
+
+Builder and advanced API (for builders and DEX operators, SDK authors, multi-signer accounts and self-custody tracking):
+
+- [Builders and DEX operators](advanced/builders.md)
+- [Ledger accounts and grants](advanced/ledger-accounts.md)
+- [Self-custody and withdrawal tracking](advanced/self-custody.md)
+- [Event backfill and async results](advanced/backfill.md)

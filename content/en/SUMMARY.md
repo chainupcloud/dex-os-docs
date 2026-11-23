@@ -32,6 +32,10 @@
   - [Margin, funds and vaults](api/trading/account-funds.md)
   - [Merchants and builders](api/trading/merchants.md)
   - [Grants, registration and governance](api/trading/governance.md)
-- [Oracle](api/oracle.md)
-- [Merchants](api/merchants.md)
-- [Governance](api/governance.md)
+
+## Builder and advanced API
+
+- [Builders and DEX operators](api/advanced/builders.md)
+- [Ledger accounts and grants](api/advanced/ledger-accounts.md)
+- [Self-custody and withdrawal tracking](api/advanced/self-custody.md)
+- [Event backfill and async results](api/advanced/backfill.md)

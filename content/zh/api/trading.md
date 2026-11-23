@@ -4,6 +4,6 @@
 
 ## POST /v1/commands
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6496bb9a2d9c33f3809ed74701b360d72865ca44/api/openapi-v1.zh.yaml" path="/v1/commands" method="post" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6496bb9a2d9c33f3809ed74701b360d72865ca44/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/e04c6559f31ee164c06ff8742170aa08c6e29ec4/api/openapi-v1.zh.yaml" path="/v1/commands" method="post" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/e04c6559f31ee164c06ff8742170aa08c6e29ec4/api/openapi-v1.zh.yaml
 {% endopenapi %}
