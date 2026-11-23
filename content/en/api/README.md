@@ -4,11 +4,10 @@ Both languages use the same public v1 OpenAPI specification. Protocol fields rem
 
 Read the developer guides for decimal scaling, signing, and receipt handling. Account channels do not imply confidential access.
 
-Interactive requests require the actual gateway URL. The server host in this specification is the placeholder `api.dexos.invalid` until a public gateway address is published. Signed writes require a client-generated signature and are submitted through `POST /v1/commands`.
+**Test it** sends requests to the preview network `https://dex-preview.unibook.site` (test funds only). Signed writes need a signature made on the client and go through `POST /v1/commands`; to sign and submit one from the browser, use the [API playground](https://dex-preview.unibook.site/app/api-playground/). Each command on the [Trading](trading/commands.md) pages links to it.
 
-[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.yaml)
+[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6496bb9a2d9c33f3809ed74701b360d72865ca44/api/openapi-v1.yaml)
 
-- [Exchange](exchange.md)
 - [Market data](market-data.md)
 - [Account](account.md)
 - [Vaults](vaults.md)

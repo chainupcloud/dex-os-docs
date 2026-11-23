@@ -21,7 +21,6 @@
 ## API Reference
 
 - [API reference overview](api/README.md)
-- [Exchange](api/exchange.md)
 - [Market data](api/market-data.md)
 - [Account](api/account.md)
 - [Funds](api/funds.md)

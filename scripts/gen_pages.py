@@ -9,14 +9,13 @@ zh = yaml.safe_load(open(f"{root}/api/openapi-v1.zh.yaml"))
 assert {p: sorted(i) for p, i in zh["paths"].items()} == {p: sorted(i) for p, i in spec["paths"].items()}, "zh spec operations differ"
 
 pages = {
-    "Exchange": ("exchange", "Exchange", "交易所信息", None, None),
     "Market data": ("market-data", "Market data", "市场行情", None, None),
     "Account": ("account", "Account", "账户", None, None),
     "Funds": ("funds", "Funds", "资金", None, None),
     "Vaults": ("vaults", "Vaults", "金库", None, None),
     "Trading": ("trading", "Trading", "交易",
         "Signed writes are submitted through `POST /v1/commands`; see the [authentication guide](../developers/authentication.md). Which commands it accepts, who signs them and their nonce lanes: [Commands overview](trading/commands.md).",
-        "签名写请求统一通过 `POST /v1/commands` 提交，签法见[认证指南](../developers/authentication.md)。可以提交哪些命令、由谁签名、走哪条 nonce 车道，见[命令总览](trading/commands.md)。"),
+        "签名写请求统一通过 `POST /v1/commands` 提交，签法见[认证指南](../developers/authentication.md)。可以提交哪些命令、由谁签名、用哪条 nonce 序列，见[命令总览](trading/commands.md)。"),
     "Subscriptions": ("subscriptions", "Subscriptions", "订阅",
         "For channels, heartbeats, and recovery, see the [WebSocket guide](../developers/websocket.md).",
         "频道、心跳与恢复见 [WebSocket 指南](../developers/websocket.md)。"),
