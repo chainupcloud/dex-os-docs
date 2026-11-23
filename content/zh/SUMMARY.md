@@ -32,6 +32,10 @@
   - [保证金、资金与金库](api/trading/account-funds.md)
   - [商户与 builder](api/trading/merchants.md)
   - [授权、注册与治理](api/trading/governance.md)
-- [预言机](api/oracle.md)
-- [商户](api/merchants.md)
-- [治理](api/governance.md)
+
+## Builder 与进阶 API
+
+- [Builder 与 DEX 部署方](api/advanced/builders.md)
+- [账本账户与授权](api/advanced/ledger-accounts.md)
+- [自托管与提款追踪](api/advanced/self-custody.md)
+- [事件补数与异步结果](api/advanced/backfill.md)
