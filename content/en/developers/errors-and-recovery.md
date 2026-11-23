@@ -40,8 +40,8 @@ Resubmitting exactly the same command bytes is safe: if the ledger already accep
 
 A network timeout, a 5xx or an `Unknown` receipt does not prove that a write failed. A command can never be accepted after its `validUntilMs`, which gives a definite answer:
 
-1. Wait until the certified time from `GET /v1/time/certified` passes the command's `validUntilMs`.
-2. Query the receipt with `x-dexos-min-seq` set to the `hostLogIndex` from that same time response. A 412 means the replica has not caught up; retry.
+1. Wait until the ledger's certified time passes the command's `validUntilMs`.
+2. Query the receipt with `x-dexos-min-seq` set to the ledger position at which that time was read. A 412 means the replica has not caught up; retry.
 3. `Executed` means the command executed; read the results from the receipt. `Unknown` or `AuthorizationRejected` means this command was not and will never be executed, and its nonce was not consumed.
 
 Only then sign a replacement. The SDK's `Finalize` implements this procedure.

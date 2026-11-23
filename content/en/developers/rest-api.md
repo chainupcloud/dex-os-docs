@@ -1,12 +1,11 @@
 # REST API conventions
 
-v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
+v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6496bb9a2d9c33f3809ed74701b360d72865ca44/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
 
 ## Choose an endpoint
 
 | Purpose | Entry points |
 |---|---|
-| Environment and signing configuration | `/v1/exchange`, `/v1/time` |
 | Markets and prices | `/v1/markets`, `/v1/prices`, `/v1/markets/{symbol}/book`, `/trades`, `/candles`, `/funding` (append the last three to the market path) |
 | Account state | `/v1/account`, `/v1/account/positions`, `/v1/account/orders` |
 | Fills and ledger | `/v1/account/fills`, `/v1/account/ledger`, `/v1/account/orders/history` |

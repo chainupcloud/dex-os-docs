@@ -4,15 +4,11 @@ Use public read endpoints to confirm the environment, markets and precision befo
 
 ## Set the API address
 
-Obtain the HTTPS API base URL for your environment from the operator and set `DEXOS_API_URL`, without a trailing `/`. This page does not assume a testnet or mainnet hostname. Balances, signing domains and markets can differ between environments. The examples require Bash and curl.
+The examples use the preview network, which holds test funds only. For another environment, get its HTTPS base URL from the operator. Do not add a trailing `/`. Balances, signing domains and markets differ between environments; the SDK reads the network identity from each gateway, so never hard-code a signing domain or contract address from an example. The examples require Bash and curl.
 
 ```bash
-: "${DEXOS_API_URL:?Set the API base URL for your environment}"
-curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/time"
-curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/exchange"
+export DEXOS_API_URL=https://dex-preview.unibook.site
 ```
-
-`/v1/time` returns `serverTime` in Unix milliseconds. `/v1/exchange` returns the EIP-712 domain, deposit system address, token table, version, vault creation fee and minimum deposit, and numeric conventions. The network identity that signed commands bind to comes from `/v1/network`. Read these values separately for each environment; do not hard-code a signing domain or contract address from an example.
 
 ## Discover markets
 
@@ -52,6 +48,6 @@ The nonce defaults to the `trade` lane; add `lane=funds` or `lane=management` fo
 
 ## Add trading next
 
-Read [Signing and authorization](authentication.md), then build and sign commands with the [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go) SDK. Verify the complete flow in a test environment: read network identity and certified time → read the nonce → sign → `POST /v1/commands` → query the receipt → query orders or fills. This page provides no executable fund-moving request.
+Read [Signing and authorization](authentication.md), then build and sign commands with the [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go) SDK. [Orders](../api/trading/orders.md) shows a complete order with real requests and responses, and the [API playground](https://dex-preview.unibook.site/app/api-playground/) lets you sign and submit any command from the browser. Verify the complete flow in a test environment: read network identity and certified time → read the nonce → sign → `POST /v1/commands` → query the receipt → query orders or fills. This page provides no executable fund-moving request.
 
 HTTP 202 from `POST /v1/commands` means the command was sequenced, not that it executed or filled. Query its `requestId` and inspect every item in the receipt instead of blindly resending. See [REST API conventions](rest-api.md) and [Errors and recovery](errors-and-recovery.md) for receipts, pagination and errors.
