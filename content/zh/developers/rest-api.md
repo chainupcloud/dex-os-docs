@@ -1,12 +1,11 @@
 # REST API 使用约定
 
-v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5bc3cf71888173be4aa5278dd98f425a94b51194/api/openapi-v1.zh.yaml)。本页解释调用流程，不复制整份接口定义。
+v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/6496bb9a2d9c33f3809ed74701b360d72865ca44/api/openapi-v1.zh.yaml)。本页解释调用流程，不复制整份接口定义。
 
 ## 接口选择
 
 | 目的 | 入口 |
 |---|---|
-| 环境与签名配置 | `/v1/exchange`、`/v1/time` |
 | 市场与行情 | `/v1/markets`、`/v1/prices`、`/v1/markets/{symbol}/book`、`/trades`、`/candles`、`/funding`（后面三项接在市场路径后） |
 | 账户状态 | `/v1/account`、`/v1/account/positions`、`/v1/account/orders` |
 | 成交与账本 | `/v1/account/fills`、`/v1/account/ledger`、`/v1/account/orders/history` |

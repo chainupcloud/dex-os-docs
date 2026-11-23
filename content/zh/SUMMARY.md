@@ -21,7 +21,6 @@
 ## API 参考
 
 - [API 参考概览](api/README.md)
-- [交易所信息](api/exchange.md)
 - [市场行情](api/market-data.md)
 - [账户](api/account.md)
 - [资金](api/funds.md)

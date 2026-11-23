@@ -8,10 +8,10 @@ Build commands with the public Go SDK [dex-sdk-go](https://github.com/chainupclo
 
 | Part | Where it comes from |
 |---|---|
-| Network identity: `networkId`, `genesisHash`, `ledgerEpoch`, chain id, verifying contract, `manifestHash` | `GET /v1/network`. Read it per environment and never hard-code it |
+| Network identity: `networkId`, `genesisHash`, `ledgerEpoch`, chain id, verifying contract, `manifestHash` | The SDK reads it from the gateway of each environment; never hard-code it |
 | Signing principal | The account root (a main wallet that is a member of the account's signing policy) or an API wallet acting under a grant |
 | Nonce lane and nonce | `trade` for orders and cancels, `funds` for withdrawals, transfers and vault deposits/redemptions, `management` for grants, subaccounts and similar settings |
-| Validity | `validUntilMs`, judged against certified ledger time from `GET /v1/time/certified`, not your local clock |
+| Validity | `validUntilMs`, judged against the ledger's certified time, not your local clock |
 | Inner command | Canonical encoding of the business action; prices and sizes are scaled integers, markets use `signingMarketId` and accounts use `signingAccountId` |
 
 The signature is EIP-712 over an `AuthorizedAction` struct that covers all of the above. The command's `actionId` is also its `requestId` for receipt lookups.

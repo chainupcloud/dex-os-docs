@@ -2,6 +2,8 @@
 
 Every ledger change is a signed command submitted to [`POST /v1/commands`](../trading.md) as `{"command":"0x…"}`. These pages list the commands that endpoint accepts, who signs each one and which nonce lane it uses. For how to sign, see [Authentication](../../developers/authentication.md).
 
+Every command on the following pages has a JSON example of its fields and a **Try it** link to the [API playground](https://dex-preview.unibook.site/app/api-playground/), which signs and submits it on the preview network with a throwaway key and test funds. [Orders](orders.md) walks through placing an order end to end.
+
 ## Accepted commands
 
 | Command | Use |

@@ -4,15 +4,11 @@
 
 ## 设置 API 地址
 
-向运营方取得目标环境的 HTTPS API 基础地址，并设置 `DEXOS_API_URL`，末尾不要带 `/`。本页不预设测试网或主网域名；不同环境的钱包余额、签名域和市场可能不同。示例需要 Bash 和 curl。
+示例使用预览网络，里面只有测试资金。其他环境的 HTTPS 基础地址向运营方索取，末尾不要带 `/`。不同环境的钱包余额、签名域和市场都不一样；SDK 会从各环境的网关读取网络身份，不要把示例里的签名域或合约地址写死。示例需要 Bash 和 curl。
 
 ```bash
-: "${DEXOS_API_URL:?请设置目标环境的 API 基础地址}"
-curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/time"
-curl --fail-with-body --silent --show-error "$DEXOS_API_URL/v1/exchange"
+export DEXOS_API_URL=https://dex-preview.unibook.site
 ```
-
-`/v1/time` 返回毫秒时间戳 `serverTime`。`/v1/exchange` 返回 EIP-712 签名域、入金系统地址、资产表、版本、金库创建费与最低存入额，以及数值约定。签名命令要绑定的网络身份取自 `/v1/network`。每个环境都应重新读取这些信息；不要把示例中的签名域或合约地址写死。
 
 ## 获取可交易市场
 
@@ -48,10 +44,10 @@ curl --fail-with-body --silent --show-error --get \
 
 地址不存在时可能返回 404；这不表示 API 离线。子账户查询加 `subaccount`，其中 `0` 表示主账户。金库账户查询改用 `vault`，与 `address`、`subaccount` 互斥。
 
-nonce 缺省是 `trade` 车道；其他车道加 `lane=funds` 或 `lane=management`。每条车道的窗口各自独立。
+nonce 缺省读 `trade` 序列；其他序列加 `lane=funds` 或 `lane=management`。每条序列的窗口各自独立。
 
 ## 接下来接交易
 
-阅读[签名与授权](authentication.md)，然后用 [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go) SDK 构造并签名命令。在测试环境验证完整流程：读取网络身份和认证时间 → 读取 nonce → 签名 → `POST /v1/commands` → 查询回执 → 查询订单或成交。本文不提供可直接执行的资金写请求。
+阅读[签名与授权](authentication.md)，然后用 [dex-sdk-go](https://github.com/chainupcloud/dex-sdk-go) SDK 构造并签名命令。[订单](../api/trading/orders.md)页给出一笔带真实请求和响应的完整下单流程，[API 调试台](https://dex-preview.unibook.site/app/api-playground/)可以在浏览器里签名提交任意命令。在测试环境验证完整流程：读取网络身份和认证时间 → 读取 nonce → 签名 → `POST /v1/commands` → 查询回执 → 查询订单或成交。本文不提供可直接执行的资金写请求。
 
 `POST /v1/commands` 返回 HTTP 202 表示命令已定序，不代表已执行或已成交。应查询其 `requestId` 并逐项检查回执，不要盲目重发。回执、分页和错误处理见 [REST API 使用约定](rest-api.md)和[错误与恢复](errors-and-recovery.md)。

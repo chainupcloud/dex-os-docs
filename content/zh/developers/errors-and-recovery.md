@@ -40,8 +40,8 @@ GET /v1/requests/<requestId>?digest=<digest>
 
 网络超时、5xx 或 `Unknown` 回执都不能证明写入失败。命令过了 `validUntilMs` 之后就不会再被受理，据此可以得到确定结论：
 
-1. 等到 `GET /v1/time/certified` 给出的认证时间超过该命令的 `validUntilMs`。
-2. 用同一次时间响应里的 `hostLogIndex` 作为 `x-dexos-min-seq` 查询回执。返回 412 表示副本还没追上，稍后重试。
+1. 等到账本认证时间超过该命令的 `validUntilMs`。
+2. 用读到该时间时的账本位置作为 `x-dexos-min-seq` 查询回执。返回 412 表示副本还没追上，稍后重试。
 3. `Executed` 表示已经执行，从回执读取结果；`Unknown` 或 `AuthorizationRejected` 表示这条命令没有执行、以后也不会执行，nonce 没有消耗。
 
 确认之后再签替代命令。SDK 的 `Finalize` 实现了这一流程。

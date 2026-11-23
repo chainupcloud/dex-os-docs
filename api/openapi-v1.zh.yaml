@@ -12,17 +12,16 @@ info:
 
     ## 快速上手
 
-    1. `GET /v1/network` → 供 SDK 使用的 `canonicalManifest`。
-    2. `GET /v1/markets` → `symbol`、小数位、`signingMarketId`；`GET /v1/exchange` → 代币表。
-    3. `GET /v1/account/nonce?address=…&lane=trade` → `nonce`、`signingAccountId`（API 钱包签名时加 `&signer=`）。
-    4. 用 SDK 签名；`POST /v1/commands` `{"command":"0x…"}` → `202 {requestId, digest, seq}`；轮询
+    1. `GET /v1/markets` → `symbol`、小数位、`signingMarketId`。
+    2. `GET /v1/account/nonce?address=…&lane=trade` → `nonce`、`signingAccountId`（API 钱包签名时加 `&signer=`）。
+    3. 用 SDK 签名；`POST /v1/commands` `{"command":"0x…"}` → `202 {requestId, digest, seq}`；轮询
        `GET /v1/requests/{requestId}`，直到 `Executed`。
 
     ## 签名命令与 nonce
 
     - 签名者：账户的签名策略（所有者加门限）或已获授权的 API 钱包；超出有效期：
       `SignatureExpired`。
-    - 每个签名主体的车道：`trade`、`funds`、`management`（授权、子账户、治理）。
+    - 每个签名主体按 `lane` 各有一条独立的 nonce 序列：`trade`、`funds`、`management`（授权、子账户、治理）。
     - 每个 nonce 只能用一次，范围是 `high - 1023`（`high` 为已用最大值）到 `high + 1024` 与账本毫秒时间 + 1 天中的较大者；
       请发送返回的 `nonce`（`NonceBelowFloor`、`NonceAlreadyConsumed`、`AuthorizationNotYetValid`）。被拒不消耗 nonce。
 
@@ -83,16 +82,9 @@ info:
 
     **`execution`**: `20000 + execution error code`（只追加）；字符串代码即执行层错误名，例如 `InsufficientMargin`、`SignatureExpired`、`NonceBelowFloor`、`NonceAlreadyConsumed`、`PostOnlyWouldCross`
 servers:
-  - url: "https://{host}"
-    description: "DEXOS 网关"
-    variables:
-      host:
-        default: api.dexos.invalid
-        description: "所接入的 DEXOS 网关主机名"
+  - url: "https://dex-preview.unibook.site"
+    description: "预览网络(只有测试资金)"
 tags:
-  - name: Exchange
-    x-page-title: "交易所信息"
-    x-page-description: "签名域、链与代币表、交易所级配置"
   - name: Market data
     x-page-title: "市场行情"
     x-page-description: "市场、订单簿、成交、K 线、价格与资金费"
@@ -229,7 +221,7 @@ tags:
 
       ### 规则
 
-      - 快照频道（`book` / `bbo` / `prices` / `account` / `positions` / `orders`）订阅时发送 `isSnapshot:true`；此后除 `orders` 外每个区块（约 1 秒）至多推送一次，仅在有变化时推送
+      - 快照频道（`book` / `bbo` / `prices` / `account` / `positions` / `orders`）订阅时发送 `isSnapshot:true`；此后除 `orders` 外仅在有变化时推送，`book` / `bbo` 每 250 毫秒至多一次，其余每个区块（约 1 秒）至多一次
       - 回应 `subscribe` / `unsubscribe` 的错误帧回显请求的 `id`、`data.method` 和 `data.subscription`。取消不存在的订阅会返回错误（`GatewayNotFound`）
       - `orders`：所有未成交订单的快照（条件单带 `trigger`），此后每次接受 / 成交 / 撤单 / 过期各一帧。按 `orderId` 应用：`status` 为 `open` 则保留，否则移除；快照替换整个集合
       - `candles`：每次成交一帧，内容为当前 K 线的最新状态（保留最后一帧即可）；周期滚动时开始新的 K 线
@@ -239,17 +231,18 @@ tags:
       - WebSocket 连接本身不计限流权重；REST 限流（429，带 `retry-after`）见总览
       - 私有频道接受用 `vault` 代替 `address` / `subaccount`（不可同时给出）；此时帧中带 `vault`
       - 带 `symbol` 的频道也接受 `kind`（`perp` | `spot`），永续和现货市场同名时必填；帧中带 `kind`
+      - `orders` / `fills` 带 `stage:"matched"`：下单类命令的帧在撮合完成时推送，带 `stage`，`id` 不变，之后不再重推；其余帧在结果落定后推送。同一频道和账户只能选一种
 
       ### 频道
 
       | 频道 | 参数 | 数据 |
       |---|---|---|
-      | `prices` | — | 与 `GET /v1/prices` 的响应体相同：`{prices:[Price], ts, window24h}` |
+      | `prices` | `delta?` | 与 `GET /v1/prices` 的响应体相同：`{prices:[Price], ts, window24h}`。`delta:true`：快照之后只推有变化的行（按 `kind` + `symbol` 替换）；市场集合变化时重发快照。每个连接只能订一种模式 |
       | `book` | `symbol`, `kind?`, `depth?`, `aggTicks?` | 订单簿，每侧 `depth` 档（1-100，默认 20），`aggTicks` 同 `GET /v1/markets/{symbol}/book`；两者均回显，无效值返回错误帧。同一连接可订阅多个 `aggTicks` |
       | `bbo` | `symbol`, `kind?` | 最优买卖价：`{symbol, kind, bid:[price,size]\|null, ask, ts}` |
       | `trades` | `symbol`, `kind?` | 每笔成交一帧：`{symbol, kind, id, price, size, side, ts}` |
-      | `orders` | `address`, `subaccount?`, `vault?` | 快照：`{address, subaccount, orders:[OpenOrder]}`。更新：`{orderId, clientOrderId, symbol, kind, event, status, remaining, side?, price?, size?, filled?, lastFilled?, fillId?, ts}` |
-      | `fills` | `address`, `subaccount?`, `vault?` | 成交（`GET /v1/account/fills` 的行）+ `address`、`subaccount` |
+      | `orders` | `address`, `subaccount?`, `vault?`, `stage?` | 快照：`{address, subaccount, orders:[OpenOrder]}`。更新：`{orderId, clientOrderId, symbol, kind, event, status, remaining, side?, price?, size?, filled?, lastFilled?, fillId?, ts}` |
+      | `fills` | `address`, `subaccount?`, `vault?`, `stage?` | 成交（`GET /v1/account/fills` 的行）+ `address`、`subaccount` |
       | `account` | `address`, `subaccount?`, `vault?` | 账户（`GET /v1/account` 的响应体，同一视图） |
       | `positions` | `address`, `subaccount?`, `vault?` | `{address, subaccount, positions:[Position]}`（`GET /v1/account/positions` 的响应体） |
       | `candles` | `symbol`, `kind?`, `interval` | K 线 `{symbol, kind, i, t, T, o, h, l, c, v}`，每次成交发送当前 K 线；`interval` 取值同 REST（未知取值返回错误帧） |
@@ -751,7 +744,7 @@ paths:
               - funds
               - management
             default: trade
-          description: "nonce 车道：`trade`（下单、撤单）、`funds`（提款、转账）、`management`（授权、子账户、治理）；未知车道返回 400"
+          description: "nonce 序列（`lane`）：`trade`（下单、撤单）、`funds`（提款、转账）、`management`（授权、子账户、治理）；未知的 `lane`返回 400"
       responses:
         "200":
           description: "成功"
@@ -1667,23 +1660,6 @@ paths:
           "$ref": "#/components/responses/BadRequest"
         "404":
           "$ref": "#/components/responses/NotFound"
-  /v1/exchange:
-    get:
-      description: "连接参数：EIP-712 域、链 ID、入金地址、代币表、版本、`serverTime`、`fundingTickSec`、金库创建费和最低存入额（`vault`）、数值约定。**切勿硬编码域**：换链或重新部署合约后，所有签名都会失败（401）。"
-      operationId: v1_exchange
-      parameters: []
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Exchange"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-      summary: "连接参数与约定"
-      tags:
-        - Exchange
   /v1/fees:
     get:
       tags:
@@ -2230,7 +2206,7 @@ paths:
         - Account
       summary: "请求回执"
       description: |-
-        查询发送到 `POST /v1/commands` 的命令的回执。唯一的查询参数：`digest`。响应从不缓存。
+        查询发送到 `POST /v1/commands` 的命令的回执。查询参数：`digest` 或 `wait=match`。响应从不缓存。
 
         `status`：
 
@@ -2284,6 +2260,14 @@ paths:
             type: string
             pattern: "^0x[0-9a-f]{64}$"
           description: "可选：`POST /v1/commands` 为你所签版本返回的 `digest`（同一请求 ID 可多次签名）；另一版本的回执返回 409 `Conflict`，其授权拒绝不返回"
+        - name: wait
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - match
+          description: "`match`（不能与 `digest` 同用）：下单类命令撮合完成即返回结果，最多等 5 秒（`stage: \"matched\"`，`source: \"MatchReceipt\"`）；否则与不带该参数时相同，已落定的带 `stage: \"folded\"`"
       responses:
         "200":
           description: "请求已知：`status` 为 `Accepted`、`Executed` 或 `AuthorizationRejected`"
@@ -2329,8 +2313,10 @@ paths:
                         type: array
                         items:
                           type: object
+                        description: "每个批量输入一项：`inputIndex`、`kind`、`state`、`orderId` / `replacedOrderId`。`BatchReplace3` 中按位置引用更早命令新单的撤单或改单项，回显 `ref` `{market, seq, sub, item}`"
                       source:
                         type: string
+                  - "$ref": "#/components/schemas/RequestMatched"
         "400":
           description: "请求 ID、`digest` 或 `x-dexos-min-seq` 格式错误，或使用了不支持的查询参数（`invalid_request_id`、`invalid_request_digest`、`invalid_min_seq`、`unsupported_request_parameter`）；不说明该请求的任何情况"
           content:
@@ -2413,26 +2399,6 @@ paths:
           "$ref": "#/components/responses/NotFound"
         "503":
           "$ref": "#/components/responses/Unavailable"
-  /v1/time:
-    get:
-      tags:
-        - Exchange
-      summary: "服务器时间"
-      description: "服务器时间 `{serverTime}`，Unix 毫秒；签名中的 `expiresAt` 以它为准。"
-      operationId: v1_time
-      parameters: []
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  serverTime:
-                    type: integer
-                    format: int64
-                    description: "Unix 毫秒"
   /v1/vaults:
     get:
       tags:
@@ -2834,8 +2800,8 @@ paths:
       summary: "提交签名命令"
       description: |-
         提交一条完整签名的命令：`{"command": "0x…"}`（SDK 生成的规范编码，小写十六进制）。
-        nonce、有效期和签名都必须已在命令中。不接受查询参数
-        （400 `unsupported_submission_parameter`）。
+        nonce、有效期和签名都必须已在命令中。查询参数只接受
+        `wait=match`，其他参数返回 400 `unsupported_submission_parameter`。
 
         - `202` = 仅已定序；`200` 且带 `duplicate: true` = 已被准入。400 / 403 / 409 / 422 / 429 = 定序前被拒绝，
           nonce 未动用（例如 `malformed_signed_command`、`unsupported_command`、
@@ -2855,6 +2821,15 @@ paths:
           422 `GatewayCollateralTokenMismatch`。
         - **背压**：503 `GatewayHistoryBackpressure` 加 `Retry-After`，暂停除撤单外的写入。
       operationId: v1_commands
+      parameters:
+        - name: wait
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - match
+          description: "只适用于下单类命令（其他命令返回 400 `wait_match_unsupported_command`）：撮合完成后以 `200` 返回结果（`stage`）；余额和仓位随后很快落定。超时：`202` 且带 `resultsPending: true`"
       requestBody:
         required: true
         content:
@@ -2873,22 +2848,24 @@ paths:
                   description: "规范二进制编码的签名命令：`0x` + 小写十六进制，解码后最多 1 MiB。非规范字节：400 `malformed_signed_command`"
       responses:
         "200":
-          description: "完全相同的命令（相同的 `requestId` 和 `digest`）已被准入：返回首次回执，带 `duplicate: true`；`seq` / `sub` / `x-dexos-seq` 均为首次准入时的值"
+          description: "完全相同的命令（相同的 `requestId` 和 `digest`）已被准入：返回首次回执，带 `duplicate: true`；`seq` / `sub` / `x-dexos-seq` 均为首次准入时的值；带 `wait=match` 时为执行结果"
           headers:
             x-dexos-seq:
               "$ref": "#/components/headers/x-dexos-seq"
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/CommandResubmitted"
+                oneOf:
+                  - "$ref": "#/components/schemas/CommandResubmitted"
+                  - "$ref": "#/components/schemas/CommandMatched"
         "202":
-          description: "已定序（`seq`、`sub`；`seq` 也在 `x-dexos-seq` 中），尚未授权或执行（`executionKnown: false`，`nonceConsumed: null`）。请用 `GET /v1/requests/{requestId}` 确认"
+          description: "已定序（`seq`、`sub`；`seq` 也在 `x-dexos-seq` 中），尚未授权或执行（`executionKnown: false`，`nonceConsumed: null`）。请用 `GET /v1/requests/{requestId}` 确认；`wait=match` 超时也返回 202"
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandAccepted"
         "400":
-          description: "定序前被拒绝，nonce 未动用：`malformed_signed_command`、`unsupported_command`、`invalid_command_identity`、`unsupported_submission_parameter`、`invalid_signature_encoding`、`invalid_signature`、`signature_order`、`threshold_not_met`、`authority_epoch_mismatch`、`grant_revoked`、`grant_expired`、`nonce_below_floor`、`nonce_too_far_ahead`、`address_already_has_account`、`precheck_rejected`、`GatewayBuilderUnknown`"
+          description: "定序前被拒绝，nonce 未动用：`malformed_signed_command`、`unsupported_command`、`invalid_command_identity`、`unsupported_submission_parameter`、`wait_match_unsupported_command`、`invalid_signature_encoding`、`invalid_signature`、`signature_order`、`threshold_not_met`、`authority_epoch_mismatch`、`grant_revoked`、`grant_expired`、`nonce_below_floor`、`nonce_too_far_ahead`、`address_already_has_account`、`precheck_rejected`、`GatewayBuilderUnknown`"
           content:
             application/json:
               schema:
@@ -2943,6 +2920,174 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandError"
+  /v1/oracle/markets:
+    get:
+      tags:
+        - Oracle
+      summary: "所有市场的预言机轮次参数"
+      description: "所有配置了预言机策略的市场的预言机轮次参数，取自同一个账本视图，报价者或中继者一次请求即可读到自己的全部市场，不必逐个市场请求。`oracles[]` 的每一项与 `GET /v1/oracle/markets/{id}` 的 `oracle` 对象完全相同；其余字段是同一视图的头部信息。没有预言机策略的市场不在列表中。账本读视图不可用时返回 503。"
+      operationId: v1_oracle_markets
+      responses:
+        "200":
+          description: "所有配置了预言机策略的市场的预言机轮次参数"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  networkId:
+                    type: string
+                  genesisHash:
+                    type: string
+                  ledgerEpoch:
+                    type: string
+                  manifestHash:
+                    type: string
+                  inputSeq:
+                    type: string
+                  hostLogIndex:
+                    type: string
+                  inputPrefix:
+                    type: string
+                  oracles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        marketId:
+                          type: integer
+                        policyVersion:
+                          type: string
+                        policyStatus:
+                          type: integer
+                        feedId:
+                          type: string
+                        feedVersion:
+                          type: string
+                        sourceType:
+                          type: integer
+                        setId:
+                          type: string
+                        setEpoch:
+                          type: string
+                        setCurrentEpoch:
+                          type:
+                            - string
+                            - "null"
+                          description: "报价者集合的当前纪元；集合不存在时为 `null`"
+                        setFollowing:
+                          type: boolean
+                          description: "策略跟随报价者集合的当前纪元（`setEpoch` = \"0\"）"
+                        recipe:
+                          anyOf:
+                            - "$ref": "#/components/schemas/OracleRecipe"
+                            - type: "null"
+                          description: "配方喂价（`sourceType` 3）的价格配方；否则为 `null`"
+                        recipeHash:
+                          type:
+                            - string
+                            - "null"
+                          description: "配方哈希，0x 开头的十六进制（域 `DEXOS/PriceRecipe/v1`）；其他喂价为 `null`"
+                        algorithmId:
+                          type: integer
+                        algorithmVersion:
+                          type: integer
+                        currentRound:
+                          type: string
+                        unitHash:
+                          type: string
+                        priceDecimals:
+                          type: integer
+                        priceUnit:
+                          type: object
+                          properties:
+                            numerator:
+                              type: string
+                            denominator:
+                              type: string
+                        minIndependentSources:
+                          type: integer
+                          description: "每轮独立来源族的最少数量"
+                        freshnessMs:
+                          type: string
+                          description: "报价新鲜度窗口，毫秒"
+                        futureSkewMs:
+                          type: string
+                          description: "观测时间戳可超前可信时间的最大值，毫秒"
+                        parameters:
+                          type: object
+                          description: "按存储原样给出的算法参数：`schemaId` / `schemaVersion` / `fields[{fieldId, kind, value}]`；整数为十进制字符串"
+                        maxEvidenceBytes:
+                          type: integer
+                          description: "证据大小上限，字节"
+                        reference:
+                          type:
+                            - object
+                            - "null"
+                          description: "本策略版本下上一个生效价格 `{policyVersion, priceAtoms}`；该版本首轮为 `null`"
+                          properties:
+                            policyVersion:
+                              type: string
+                            priceAtoms:
+                              type: string
+                        threshold:
+                          type:
+                            - integer
+                            - "null"
+                          description: "报价者集合门限（每轮最少报价数）；集合不存在时为 `null`"
+                        reporters:
+                          type: array
+                          description: "集合成员（升序）：地址、当前纪元内最近被接受的序号（没有则为 `\"0\"`）、绑定的来源和来源族"
+                          items:
+                            type: object
+                            properties:
+                              address:
+                                type: string
+                              sequence:
+                                type: string
+                              sources:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    sourceId:
+                                      type: string
+                                    sourceFamily:
+                                      type: string
+                        marketDex:
+                          type: integer
+                          description: "市场所属的交易所；由其管理权限设定预言机策略"
+                        oracleStale:
+                          type: boolean
+                          description: "账本的预言机过期标志"
+                        feedOwner:
+                          type:
+                            - string
+                            - "null"
+                          enum:
+                            - Protocol
+                            - Dex
+                            - null
+                          description: "策略喂价的所有者"
+                        feedDex:
+                          type:
+                            - integer
+                            - "null"
+                        setOwner:
+                          type:
+                            - string
+                            - "null"
+                          enum:
+                            - Protocol
+                            - Dex
+                            - null
+                          description: "报价者集合的所有者；集合未配置时为 `null`"
+                        setDex:
+                          type:
+                            - integer
+                            - "null"
+        "503":
+          description: "账本读视图不可用或未就绪；请重试"
   "/v1/oracle/markets/{id}":
     get:
       tags:
@@ -3208,6 +3353,23 @@ paths:
             application/json:
               schema:
                 type: object
+                properties:
+                  businessParameters:
+                    type: object
+                    properties:
+                      marketsHardCap:
+                        type: object
+                        description: "全平台市场总数上限；`cap` 为 0 表示理事会未设上限（以协议上限为准）。`SetMarketsHardCap` 不带 `expectedVersion`，账本也不为它记版本，所以 `version` 恒为 `null`。"
+                        required:
+                          - cap
+                          - version
+                        properties:
+                          cap:
+                            type: integer
+                            minimum: 0
+                          version:
+                            type: string
+                            nullable: true
         "503":
           description: "该节点账本状态尚未就绪；请稍后重试"
   "/v1/oracle/reporter-sets/{id}/followers":
@@ -3585,168 +3747,6 @@ paths:
           description: "未知托管组（`unknown_custody_group`）"
         "503":
           description: "账本读视图未就绪；请重试"
-  /v1/checkpoints/latest:
-    get:
-      tags:
-        - Exchange
-      summary: "全局检查点进度"
-      description: |-
-        全局检查点进度及各托管组的接受情况。每个周期账本切出一个覆盖所有未冻结托管组的全局根；各托管链独立接受根且可能跳过一些，因此各组的 `acceptedSeq` 可能不同。
-
-        - 尚未切根时 `latestCut` 为 `null`。
-        - 轮询 `groupCatalogVersion` 发现新托管组；从 `/v1/custody/{key}` 获取新组的注册信息。
-      operationId: v1_checkpoints_latest
-      parameters: []
-      responses:
-        "200":
-          description: "账本快照视图；64 位整数为十进制字符串"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  manifestHash:
-                    type: string
-                  nextCheckpointSeq:
-                    type: string
-                  lastCutTimeMs:
-                    type: string
-                  checkpointPeriodMs:
-                    type: string
-                  latestCut:
-                    type: object
-                    nullable: true
-                    properties:
-                      seq:
-                        type: string
-                      inputEnd:
-                        type: string
-                      cutTimeMs:
-                        type: string
-                      groups:
-                        type: array
-                        items:
-                          type: string
-                  groups:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        custodyKeyHash:
-                          type: string
-                        acceptedSeq:
-                          type: string
-                          nullable: true
-                        acceptedCheckpointId:
-                          type: string
-                          nullable: true
-                        mode:
-                          type: string
-                          enum:
-                            - normal
-                            - escapePending
-                            - frozen
-                        registrationHash:
-                          type: string
-                        firstCheckpointSeq:
-                          type: string
-                  groupCatalogVersion:
-                    type: string
-                required:
-                  - manifestHash
-                  - nextCheckpointSeq
-                  - latestCut
-                  - groups
-        "503":
-          description: "本节点账本状态尚不可用；请稍后重试"
-  /v1/network:
-    get:
-      tags:
-        - Exchange
-      summary: "网络身份"
-      description: "本节点固定的 Manifest 和网络身份。将 `canonicalManifest` 传给 `sdk-wasm` 的 `network(manifestHex)`，得到各构造函数的 `network` 参数；不要硬编码。"
-      operationId: v1_network
-      parameters:
-        - name: x-dexos-expect-manifest
-          in: header
-          required: false
-          description: "期望的 Manifest 哈希（0x + 64 位十六进制）；与本节点不符或该头重复发送时返回 503"
-          schema:
-            type: string
-      responses:
-        "200":
-          description: "Manifest 与网络身份"
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - canonicalEncoding
-                  - canonicalManifest
-                  - manifestHash
-                  - profile
-                  - networkId
-                  - genesisHash
-                  - ledgerEpoch
-                  - nodeChainId
-                  - nodeVerifier
-                  - localTrustValidated
-                  - activationStatus
-                  - businessReady
-                properties:
-                  canonicalEncoding:
-                    type: string
-                    enum:
-                      - hex
-                  canonicalManifest:
-                    type: string
-                    description: "规范 Manifest 字节（0x 开头的十六进制）"
-                  manifestHash:
-                    type: string
-                    description: "Manifest 哈希（`bytes32`）"
-                  profile:
-                    type: integer
-                    description: "Manifest 的配置档编号"
-                  networkId:
-                    type: string
-                    description: "网络 ID（`bytes32`，0x 开头的十六进制）"
-                  genesisHash:
-                    type: string
-                    description: "创世哈希（`bytes32`，0x 开头的十六进制）"
-                  ledgerEpoch:
-                    type: string
-                    description: "账本纪元，十进制字符串"
-                  nodeChainId:
-                    type: string
-                    description: "EIP-712 域的 `chainId`（`uint256`，0x 开头的十六进制）"
-                  nodeVerifier:
-                    type: string
-                    description: "EIP-712 域的 `verifyingContract`（地址）"
-                  localTrustValidated:
-                    type: boolean
-                  activationStatus:
-                    type: string
-                  businessReady:
-                    type: boolean
-        "503":
-          description: "`x-dexos-expect-manifest` 与本节点的 Manifest 不一致或重复发送：`error.code` 为 `upstream_manifest_mismatch`，`error.details.manifestHash`"
-  /v1/time/certified:
-    get:
-      tags:
-        - Exchange
-      summary: "认证时间"
-      description: "认证时间：序号、上一张证书的摘要、时间戳、暂停状态，以及链上事实服务和时间服务的纪元与成员。"
-      operationId: v1_time_certified
-      parameters: []
-      responses:
-        "200":
-          description: "账本快照视图；64 位整数为十进制字符串"
-          content:
-            application/json:
-              schema:
-                type: object
-        "503":
-          description: "账本读视图尚未就绪；请稍后重试"
   /v1/governance/council:
     get:
       tags:
@@ -3764,72 +3764,6 @@ paths:
                 type: object
         "503":
           description: "本节点的账本状态尚未就绪；请稍后重试"
-  /v1/cluster/members:
-    get:
-      tags:
-        - Exchange
-      summary: "集群成员"
-      description: "应答节点已应用的当前 Raft 成员：节点 ID、角色（`voter` / `learner`）、证书指纹（SPKI 的 SHA-256）和节点类型；**不**含地址。运营方的计算节点也以相同结构应答，`council-check --members-urls` 用它与平台交叉核对。"
-      operationId: v1_cluster_members
-      parameters: []
-      responses:
-        "200":
-          description: "成员"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  index:
-                    type:
-                      - integer
-                      - "null"
-                    format: uint64
-                    description: "成员配置的日志索引"
-                  committed:
-                    type: boolean
-                  joint:
-                    type: boolean
-                    description: "联合共识进行中（正在替换投票成员）"
-                  members:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          format: uint64
-                          description: "节点 ID（单调递增，永不复用）"
-                        role:
-                          type: string
-                          enum:
-                            - voter
-                            - learner
-                        spki:
-                          type:
-                            - string
-                            - "null"
-                          pattern: "^[0-9a-f]{64}$"
-                          description: "证书 SPKI 的 SHA-256（64 个小写十六进制字符）；仅单节点模式下为 `null`"
-                        kind:
-                          type:
-                            - string
-                            - "null"
-                          enum:
-                            - core
-                            - edge
-                            - elastic
-                            - compute
-                            - null
-                          description: "成员记录的 `#role=` 后缀；只有 `core` 节点能成为投票成员；没有时为 `null`"
-                      required:
-                        - id
-                        - role
-                        - spki
-                required:
-                  - members
-        "503":
-          description: "节点未就绪"
   /v1/accounts:
     get:
       tags:
@@ -3982,7 +3916,7 @@ paths:
       tags:
         - Account
       summary: "nonce 窗口"
-      description: "签名主体当前纪元中某条 nonce 车道的窗口：`floor`、已用最高的 `high`（未使用时为 `null`）和建议的 `next`。`agent` / `service` 主体必须传 `grant`；`principal=council` 返回理事会 `management` 车道的窗口，不接受主体 ID 或授权。带 `nonce` 时，`consumed` 表示该 nonce 是否已被消耗：`true`、`false`，低于 `floor` 时为 `null`（无法判定）。"
+      description: "签名主体当前纪元中某条 nonce 序列的窗口：`floor`、已用最高的 `high`（未使用时为 `null`）和建议的 `next`。`agent` / `service` 主体必须传 `grant`；`principal=council` 返回理事会 `management` nonce 序列的窗口，不接受主体 ID 或授权。带 `nonce` 时，`consumed` 表示该 nonce 是否已被消耗：`true`、`false`，低于 `floor` 时为 `null`（无法判定）。"
       operationId: v1_nonces
       parameters:
         - name: principal
@@ -4013,7 +3947,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "nonce 车道：`trade` / `funds` / `management`"
+          description: "nonce 序列（`lane`）：`trade` / `funds` / `management`"
         - name: grant
           in: query
           required: false
@@ -4772,7 +4706,7 @@ paths:
       tags:
         - Governance
       summary: "理事会治理概览"
-      description: "理事会治理概览：当前理事会（成员、门限、纪元）、其在 `Management` nonce 车道上的 nonce 窗口（`next` = 建议的下一个 nonce）、延迟策略、提案配额、认证时间和网络 `profile`。写后读请发送 `x-dexos-min-seq`。"
+      description: "理事会治理概览：当前理事会（成员、门限、纪元）、其在 `Management` nonce 序列上的 nonce 窗口（`next` = 建议的下一个 nonce）、延迟策略、提案配额、认证时间和网络 `profile`。写后读请发送 `x-dexos-min-seq`。"
       operationId: v1_governance
       responses:
         "200":
@@ -6455,111 +6389,6 @@ paths:
                 properties:
                   error:
                     type: string
-  /v1/site:
-    get:
-      tags:
-        - Exchange
-      summary: "本入口的首页"
-      description: |-
-        本入口域名的首页内容和品牌（取自 `Host`，或受信任代理之后的 `X-Forwarded-Host`）。带任何查询参数：400 `GatewayBadRequest`。
-
-        - `source`：`tenant` 或 `default`；`defaultLayer`：`image`（内置）或 `platform`；`sha` = `content` 的 SHA-256。
-        - `ETag` = 响应体的 SHA-256；`If-None-Match` 匹配时返回 304。
-        - 已发布的租户首页未通过复核或暂时无法读取时返回 503 `GatewayUnavailable`，绝不回退到默认首页。
-      operationId: v1_site
-      responses:
-        "200":
-          description: "首页"
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: "\"<响应体的 SHA-256>\""
-            Cache-Control:
-              schema:
-                type: string
-                enum:
-                  - no-cache
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - source
-                  - defaultLayer
-                  - version
-                  - sha
-                  - schemaVersion
-                  - content
-                  - mediaOrigins
-                properties:
-                  source:
-                    type: string
-                    enum:
-                      - tenant
-                      - default
-                  defaultLayer:
-                    type: string
-                    enum:
-                      - image
-                      - platform
-                  version:
-                    type:
-                      - integer
-                      - "null"
-                  sha:
-                    type: string
-                    description: "`content` 的 SHA-256（小写十六进制）"
-                  schemaVersion:
-                    type: integer
-                  content:
-                    type: object
-                    description: "首页内容，结构版本 1"
-                  mediaOrigins:
-                    type: array
-                    items:
-                      type: string
-        "304":
-          description: "未修改（`If-None-Match` 与当前 `ETag` 一致）"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  /v1/site/preview-parents:
-    get:
-      tags:
-        - Exchange
-      summary: "可嵌入控制台预览页的来源"
-      description: "可嵌入控制台预览页 `https://<site domain>/app/preview/` 的源（`parents`，与该页 `Content-Security-Policy: frame-ancestors` 列表相同；空 = 不允许任何源）以及允许的媒体源（`mediaOrigins`，同 `/v1/site`）。由 `Host` 请求头确定租户；带任何查询参数都返回 400 `GatewayBadRequest`。响应带 `Cache-Control: no-store`；计入按 IP 的限流。"
-      operationId: v1_site_preview_parents
-      responses:
-        "200":
-          description: "控制台源和媒体源"
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                enum:
-                  - no-store
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - parents
-                  - mediaOrigins
-                properties:
-                  parents:
-                    type: array
-                    items:
-                      type: string
-                    description: "序列化的源（`https://host[:port]`；仅回环地址允许 `http`），与 `?parent=` 按字符串比较"
-                  mediaOrigins:
-                    type: array
-                    items:
-                      type: string
-        "400":
-          "$ref": "#/components/responses/BadRequest"
 components:
   headers:
     x-dexos-seq:
@@ -7068,7 +6897,7 @@ components:
           type:
             - integer
             - "null"
-          description: "`dex` 范围管理授权所属的 `dex`（只能为该 `dex` 在 `management` nonce 车道上签名）；账户范围的交易授权为 `null`"
+          description: "`dex` 范围管理授权所属的 `dex`（只能为该 `dex` 在 `management` nonce 序列上签名）；账户范围的交易授权为 `null`"
     AgentGrant:
       type: object
       required:
@@ -7105,7 +6934,7 @@ components:
           type:
             - integer
             - "null"
-          description: "交易所范围管理授权所属的交易所：只能为该交易所签署 `management` nonce 车道的命令。账户交易授权为 `null`"
+          description: "交易所范围管理授权所属的交易所：只能为该交易所签署 `management` nonce 序列的命令。账户交易授权为 `null`"
     Balance:
       type: object
       properties:
@@ -7239,6 +7068,7 @@ components:
           required:
             - version
             - markets
+            - migrations
           properties:
             version:
               type: integer
@@ -7284,6 +7114,60 @@ components:
                     items:
                       type: string
                     description: "分类代码，按展示顺序（没有时为空）；名称见 `categories`"
+            migrations:
+              type: array
+              description: "本目录的交易对迁移（同一资产迁移到另一个市场），先按 `fromSymbol`、再按 `kind`、再按 `toSymbol` 排序；没有时为空。迁移不会撤掉 `fromSymbol` 上的挂单；请提醒用户撤单"
+              items:
+                type: object
+                required:
+                  - fromSymbol
+                  - fromDisplay
+                  - toSymbol
+                  - toDisplay
+                  - kind
+                  - state
+                  - effectiveMs
+                  - graceUntilMs
+                properties:
+                  fromSymbol:
+                    type: string
+                    description: "迁出市场的完整代码"
+                  fromDisplay:
+                    type: string
+                    description: "`fromSymbol` 的展示名称：它在本目录中时取其 `markets[].display`，否则为去掉 `<dex code>:` 前缀的代码"
+                    examples:
+                      - BTC-USD
+                  toSymbol:
+                    type: string
+                    description: "迁入市场的完整代码"
+                  toDisplay:
+                    type: string
+                    description: "`toSymbol` 的展示名称，规则同 `fromDisplay`"
+                    examples:
+                      - BTC-USD
+                  kind:
+                    type: string
+                    enum:
+                      - perp
+                      - spot
+                    description: "两个市场的类型"
+                  state:
+                    type: string
+                    enum:
+                      - scheduled
+                      - postponed
+                      - executed
+                    description: "`scheduled`：已公告；到 `effectiveMs` 时，永续的 `fromSymbol` 转为 `closeOnly`，现货的移出目录。`postponed`：已到时间但未执行，时间待定。`executed`（永续）：已执行；`fromSymbol` 在 `graceUntilMs` 之前为 `closeOnly`"
+                  effectiveMs:
+                    type: integer
+                    format: uint64
+                    description: "Unix 毫秒：计划时间（`scheduled`、`postponed`）或生效时间（`executed`）"
+                  graceUntilMs:
+                    type:
+                      - integer
+                      - "null"
+                    format: uint64
+                    description: "`fromSymbol` 移出目录的 Unix 毫秒时间；仅 `executed` 有值，其余为 `null`"
         categories:
           type: array
           items:
@@ -8163,7 +8047,7 @@ components:
           type:
             - integer
             - "null"
-          description: "仅现货：基础代币 ID（即 `GET /v1/exchange` 中 `deposit.tokens[]` 的 `token`）；永续为 `null`"
+          description: "仅现货：基础代币 ID；永续为 `null`"
         quoteToken:
           type:
             - integer
@@ -8460,7 +8344,7 @@ components:
           type:
             - integer
             - "null"
-          description: "下一个期望的 nonce；车道已用尽（`exhausted: true`）或 API 钱包读取匹配到零个或多个授权时为 `null`"
+          description: "下一个期望的 nonce；该 nonce 序列已用尽（`exhausted: true`）或 API 钱包读取匹配到零个或多个授权时为 `null`"
         signingAccountId:
           type: integer
           description: "**仅用于签名。** 填入 EIP-712 结构体的 `accountId`（API 钱包路径下也填入内层命令的 `account`）。切勿用它寻址端点；v1 按钱包地址寻址账户"
@@ -8468,7 +8352,7 @@ components:
           type:
             - boolean
             - "null"
-          description: "`true` = 下一个值将是 2^64 - 1，会被拒绝（`CounterExhausted`）：该车道不再接受写入。API 钱包读取时，除非恰好匹配一个授权，否则为 `null`；见 `grants[]`"
+          description: "`true` = 下一个值将是 2^64 - 1，会被拒绝（`CounterExhausted`）：该 nonce 序列不再接受写入。API 钱包读取时，除非恰好匹配一个授权，否则为 `null`；见 `grants[]`"
     Order:
       type: object
       required:
@@ -9032,7 +8916,7 @@ components:
             - integer
             - "null"
           format: int64
-          description: "下一次结算到期时间：`lastFundingMs` 之后第一个自 Unix 纪元起 `fundingTickSec`（`GET /v1/exchange`）的整数倍；实际结算可能晚一个采样间隔。现货及首次采样前为 `null`"
+          description: "下一次结算到期时间：`lastFundingMs` 之后第一个自 Unix 纪元起 资金费间隔的整数倍；实际结算可能晚一个采样间隔。现货及首次采样前为 `null`"
         openInterest:
           type:
             - string
@@ -9765,6 +9649,11 @@ components:
           type: boolean
           enum:
             - false
+        resultsPending:
+          type: boolean
+          enum:
+            - true
+          description: "仅在 `wait=match` 时出现：限时内没有结果"
     RequestFact:
       type: object
       required:
@@ -10720,6 +10609,178 @@ components:
                 - Council
                 - Owner
               description: "当前治理主体：已移交理事会的交易所为 `Council`，账户所有的交易所为 `Owner`"
+    CommandMatched:
+      type: object
+      required:
+        - status
+        - stage
+        - requestId
+        - digest
+        - commandHash
+        - seq
+        - sub
+        - executionKnown
+        - duplicate
+        - businessRejected
+        - events
+        - networkId
+        - genesisHash
+        - manifestHash
+        - ledgerEpoch
+      properties:
+        networkId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        genesisHash:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        manifestHash:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        ledgerEpoch:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "账本纪元；十进制字符串"
+        status:
+          type: string
+          enum:
+            - Executed
+            - AuthorizationRejected
+        stage:
+          type: string
+          enum:
+            - matched
+            - folded
+          description: "`matched`：撮合引擎给出，早于余额和仓位落定（读请求带 `x-dexos-min-seq` 可读到落定后的状态）；`folded`：已落定，与 `GET /v1/requests/{requestId}` 返回的相同"
+        requestId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        digest:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        commandHash:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        seq:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "命令定序所在的日志位置（宿主日志下标）；十进制字符串"
+        sub:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        executionKnown:
+          type: boolean
+        nonceConsumed:
+          type: boolean
+          nullable: true
+        duplicate:
+          type: boolean
+          enum:
+            - false
+        outcome:
+          type: string
+          enum:
+            - Succeeded
+            - Failed
+        stableError:
+          type: string
+        errorCode:
+          type: integer
+        businessRejected:
+          type: string
+          nullable: true
+          description: "订单被拒的原因（例如 `InsufficientMargin`、`PostOnlyWouldCross`）；被接受时为 `null`"
+        items:
+          type: array
+          items:
+            type: object
+          description: "批量命令的逐项结果"
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              kind:
+                type: string
+              data:
+                type: object
+          description: "这条命令的成交、已接受和已撤销的订单；`matched` 时不含余额和仓位事件"
+        takerRequestId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+    RequestMatched:
+      type: object
+      required:
+        - requestId
+        - source
+        - stage
+        - status
+        - seq
+        - sub
+        - executionKnown
+        - businessRejected
+        - events
+      properties:
+        status:
+          type: string
+          enum:
+            - Executed
+            - AuthorizationRejected
+        stage:
+          type: string
+          enum:
+            - matched
+            - folded
+          description: "`matched`：撮合引擎给出，早于余额和仓位落定（读请求带 `x-dexos-min-seq` 可读到落定后的状态）；`folded`：已落定，与 `GET /v1/requests/{requestId}` 返回的相同"
+        requestId:
+          type: string
+          pattern: "^0x[0-9a-f]{64}$"
+        seq:
+          type: string
+          pattern: "^[0-9]+$"
+          description: "命令定序所在的日志位置（宿主日志下标）；十进制字符串"
+        sub:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        executionKnown:
+          type: boolean
+        nonceConsumed:
+          type: boolean
+          nullable: true
+        outcome:
+          type: string
+          enum:
+            - Succeeded
+            - Failed
+        stableError:
+          type: string
+        errorCode:
+          type: integer
+        businessRejected:
+          type: string
+          nullable: true
+          description: "订单被拒的原因（例如 `InsufficientMargin`、`PostOnlyWouldCross`）；被接受时为 `null`"
+        items:
+          type: array
+          items:
+            type: object
+          description: "批量命令的逐项结果"
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              kind:
+                type: string
+              data:
+                type: object
+          description: "这条命令的成交、已接受和已撤销的订单；`matched` 时不含余额和仓位事件"
+        source:
+          type: string
+          enum:
+            - MatchReceipt
 x-error-codes:
   gateway:
     GatewayBadRequest: 10400
@@ -10798,7 +10859,7 @@ x-websocket:
       isSnapshot: false
       epoch: "<private channels only>"
   rules:
-    - "快照频道（`book` / `bbo` / `prices` / `account` / `positions` / `orders`）订阅时发送 `isSnapshot:true`；此后除 `orders` 外每个区块（约 1 秒）至多推送一次，仅在有变化时推送"
+    - "快照频道（`book` / `bbo` / `prices` / `account` / `positions` / `orders`）订阅时发送 `isSnapshot:true`；此后除 `orders` 外仅在有变化时推送，`book` / `bbo` 每 250 毫秒至多一次，其余每个区块（约 1 秒）至多一次"
     - "回应 `subscribe` / `unsubscribe` 的错误帧回显请求的 `id`、`data.method` 和 `data.subscription`。取消不存在的订阅会返回错误（`GatewayNotFound`）"
     - "`orders`：所有未成交订单的快照（条件单带 `trigger`），此后每次接受 / 成交 / 撤单 / 过期各一帧。按 `orderId` 应用：`status` 为 `open` 则保留，否则移除；快照替换整个集合"
     - "`candles`：每次成交一帧，内容为当前 K 线的最新状态（保留最后一帧即可）；周期滚动时开始新的 K 线"
@@ -10808,10 +10869,12 @@ x-websocket:
     - "WebSocket 连接本身不计限流权重；REST 限流（429，带 `retry-after`）见总览"
     - "私有频道接受用 `vault` 代替 `address` / `subaccount`（不可同时给出）；此时帧中带 `vault`"
     - "带 `symbol` 的频道也接受 `kind`（`perp` | `spot`），永续和现货市场同名时必填；帧中带 `kind`"
+    - "`orders` / `fills` 带 `stage:\"matched\"`：下单类命令的帧在撮合完成时推送，带 `stage`，`id` 不变，之后不再重推；其余帧在结果落定后推送。同一频道和账户只能选一种"
   channels:
     prices:
-      params: []
-      data: "与 `GET /v1/prices` 的响应体相同：`{prices:[Price], ts, window24h}`"
+      params:
+        - "delta?"
+      data: "与 `GET /v1/prices` 的响应体相同：`{prices:[Price], ts, window24h}`。`delta:true`：快照之后只推有变化的行（按 `kind` + `symbol` 替换）；市场集合变化时重发快照。每个连接只能订一种模式"
     book:
       params:
         - symbol
@@ -10834,12 +10897,14 @@ x-websocket:
         - address
         - "subaccount?"
         - "vault?"
+        - "stage?"
       data: "快照：`{address, subaccount, orders:[OpenOrder]}`。更新：`{orderId, clientOrderId, symbol, kind, event, status, remaining, side?, price?, size?, filled?, lastFilled?, fillId?, ts}`"
     fills:
       params:
         - address
         - "subaccount?"
         - "vault?"
+        - "stage?"
       data: "成交（`GET /v1/account/fills` 的行）+ `address`、`subaccount`"
     account:
       params:
@@ -10875,3 +10940,4 @@ x-websocket:
         - "symbol?"
         - "address?"
       data: "原始执行层事件（`Event`），带 `symbol`"
+x-enable-proxy: true
