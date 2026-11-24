@@ -249,10 +249,6 @@ tags:
       | `funding` | `symbol`, `kind?` | `{symbol, kind, rate, index, ts}`，每次资金费结算一帧 |
       | `ledger` | `address`, `subaccount?`, `vault?` | `{address, subaccount, entries:[LedgerEntry]}`（或 `{vault, entries}`）：每条命令一帧，含该账户的全部条目，与 `GET /v1/account/ledger` 的条目相同（含金库、ADL 和手续费分项） |
       | `events` | `symbol?`, `address?` | 原始执行层事件（`Event`），带 `symbol` |
-  - name: Merchants
-    description: "交易所登记、所有者提案、商户准入与 builder 登记"
-    x-page-title: "商户"
-    x-page-description: "交易所登记、所有者提案、准入与 builder 登记"
 paths:
   /v1/account:
     get:
@@ -1379,102 +1375,6 @@ paths:
                       "$ref": "#/components/schemas/AgentGrant"
         "400":
           "$ref": "#/components/responses/BadRequest"
-  /v1/builder:
-    get:
-      tags:
-        - Market data
-      summary: "该入口背后的 builder"
-      description: |-
-        返回本请求解析到的 builder（白标前端）及其市场。`?builder=` 可显式指定；否则由入口域名决定（`Host`，或受信任代理之后的 `X-Forwarded-Host`）。
-        - 未绑定 builder 的域名返回 200 `PlatformEntry`（`builderId: null`），不是错误。
-        - 只出现 `listed` / `closeOnly` 市场（`closeOnly` = 只减仓）。交易用 `symbol`，展示用 `display`；`fees` = 前端费率。
-        - 无法解析 → 404 `GatewayBuilderNotFound`。
-      operationId: v1_builder
-      parameters:
-        - name: builder
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "`builderId`（十进制）；默认按入口域名"
-        - name: market
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "`signingMarketId`（0–65535）：多返回 `market` = 该市场在本目录中的那一行（含 `hidden`）；不在目录中则为 `null`（经本 builder 路由的订单会被 403 `GatewayBuilderMarketNotListed` 拒绝）。对 `PlatformEntry` 不生效"
-      responses:
-        "200":
-          description: "builder 视图；入口域名未绑定 builder 且未给出 `?builder=` 时为 `PlatformEntry`"
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - "$ref": "#/components/schemas/BuilderView"
-                  - "$ref": "#/components/schemas/PlatformEntry"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "404":
-          description: "`GatewayBuilderNotFound`（`num` 10404）：`?builder=` 指定的 builder 不存在（`details.builder`），或入口域名绑定的 builder 不存在（`details.domain`）"
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  "/v1/builders/{address}/summary":
-    get:
-      tags:
-        - Market data
-      summary: "builder 费用汇总"
-      description: "该 builder 主账户收到的 `builder_fee` 账本分录，按代币汇总，按 `startTime` / `endTime` 过滤。归属于该 builder 的成交量尚未提供（计划于 v1.1）。"
-      operationId: v1_builder_summary
-      parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^0x[0-9a-f]{40}$"
-            description: "EVM 地址；请求不区分大小写，响应中为小写"
-        - name: startTime
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int64
-            description: "Unix 毫秒"
-          description: "起始（含）"
-        - name: endTime
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int64
-            description: "Unix 毫秒"
-          description: "结束（不含）"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 1000
-          description: "每页条数"
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/BuilderSummary"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "404":
-          "$ref": "#/components/responses/NotFound"
   /v1/dexes:
     get:
       tags:
@@ -2911,125 +2811,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandError"
-  /v1/merchant-admission:
-    get:
-      tags:
-        - Merchants
-      summary: "商户准入"
-      description: "允许注册交易所的账户，以及实例身份（`networkId` / `genesisHash` / `ledgerEpoch` / `manifestHash`）和快照位置（`inputSeq` / `hostLogIndex` / `inputPrefix`），读自同一个账本快照。"
-      operationId: v1_merchant_admission
-      parameters: []
-      responses:
-        "200":
-          description: "账本快照视图；64 位整数为十进制字符串"
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/LedgerCut"
-                  - type: object
-                    required:
-                      - admission
-                    properties:
-                      admission:
-                        "$ref": "#/components/schemas/MerchantAdmission"
-        "503":
-          description: "账本读视图尚未就绪；请稍后重试"
-  "/v1/builder-registrations/{id}":
-    get:
-      tags:
-        - Merchants
-      summary: "builder 注册信息"
-      description: "builder 注册信息，来自同一个账本快照：所有者账户及其策略纪元、收款账户、`configVersion`、`ownerActive` / `councilDisabled` / `active`（= `ownerActive && !councilDisabled`）、`configHash`。`configVersion` 和所有者策略纪元是修改收款账户或状态的治理操作的前置条件。"
-      operationId: v1_builder_registration
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "builder ID（十进制，>= 1）"
-      responses:
-        "200":
-          description: "一个一致的账本快照"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "builder ID 格式错误或为 0（`invalid_builder`）"
-        "404":
-          description: "未注册（`unknown_resource`）"
-        "503":
-          description: "账本读视图尚未就绪；请稍后重试"
-  "/v1/dex-registrations/{id}":
-    get:
-      tags:
-        - Merchants
-      summary: "商户交易所注册"
-      description: "按提交原样给出的交易所注册及其状态"
-      operationId: v1_dex_registration
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "注册 ID（带 0x 前缀的 32 字节十六进制）"
-      responses:
-        "200":
-          description: "已发布的账本快照（只读）"
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/LedgerCut"
-                  - type: object
-                    required:
-                      - authority
-                      - dex
-                    properties:
-                      authority:
-                        type: string
-                        enum:
-                          - Council
-                          - Owner
-                        description: "当前治理方：账户所有的交易所为 `Owner`，已移交理事会的交易所为 `Council`"
-                      dex:
-                        "$ref": "#/components/schemas/DexRegistration"
-        "400":
-          description: "路径参数格式错误（`invalid_registration_id`）"
-        "404":
-          description: "未找到（`unknown_resource`）"
-        "503":
-          description: "账本读视图尚未就绪；请稍后重试"
-  "/v1/dex-owner-proposals/{id}":
-    get:
-      tags:
-        - Merchants
-      summary: "交易所所有权转让提案"
-      description: "交易所所有权转移提案：原始提案、首个被接受的信封、摘要、策略纪元以及认证时间下的状态。未知 ID 或非所有权转移提案返回 404。"
-      operationId: v1_dex_owner_proposal
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "提案 ID（0x 前缀的 32 字节十六进制）"
-      responses:
-        "200":
-          description: "已发布的账本状态。`authorKind` / `oldOwnerKind` 表示提案方 / 原所有者是账户还是理事会；理事会对应的 `oldOwner` 为 0"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "路径参数格式错误（`invalid_proposal_id`）"
-        "404":
-          description: "未找到"
-        "503":
-          description: "账本读视图不可用或尚未就绪；稍后重试"
   "/v1/custody/{key}":
     get:
       tags:
@@ -5432,7 +5213,7 @@ components:
         - builderId
         - domain
         - homeDex
-      description: "在未绑定 builder 的入口域名上不带 `?builder=` 调用 `GET /v1/builder`：平台自身的入口（市场见 `/v1/markets`）"
+      description: "在未绑定 builder 的入口域名上：平台自身的入口（市场见 `/v1/markets`）"
       properties:
         builderId:
           type: "null"
@@ -6358,7 +6139,7 @@ components:
             builderRate:
               type: string
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "十进制字符串。builder 模型开启后：各 builder 自身费率（`/v1/builder.fees`；未设置 = 0）的**上限**；开启前：对有归属的吃单成交收取的固定费率"
+              description: "十进制字符串。builder 模型开启后：各 builder 自身费率（未设置 = 0）的**上限**；开启前：对有归属的吃单成交收取的固定费率"
             pendingDeployerRate:
               type:
                 - string
@@ -6386,7 +6167,7 @@ components:
             type: string
             pattern: "^[a-z0-9-]{1,24}$"
           maxItems: 8
-          description: "市场所属交易所的分类代码，按设置顺序排列；显示名称见 `GET /v1/dexes/{id}`（在 builder 入口背后用 `GET /v1/builder`）。仅用于展示"
+          description: "市场所属交易所的分类代码，按设置顺序排列；显示名称见 `GET /v1/dexes/{id}`。仅用于展示"
         priceSource:
           type:
             - array
