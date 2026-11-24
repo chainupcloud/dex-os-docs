@@ -251,10 +251,6 @@ tags:
       | `funding` | `symbol`, `kind?` | `{symbol, kind, rate, index, ts}`, one frame per funding settlement |
       | `ledger` | `address`, `subaccount?`, `vault?` | `{address, subaccount, entries:[LedgerEntry]}` (or `{vault, entries}`): one frame per command with this account's entries, identical to `GET /v1/account/ledger` rows (vault, ADL and fee legs included) |
       | `events` | `symbol?`, `address?` | Raw execution-layer events (Event) with `symbol` |
-  - name: Merchants
-    description: Dex registrations, owner proposals, merchant admission and builder registrations
-    x-page-title: Merchants
-    x-page-description: Dex registrations, owner proposals, admission and builder registrations
 paths:
   /v1/account:
     get:
@@ -1381,102 +1377,6 @@ paths:
                       "$ref": "#/components/schemas/AgentGrant"
         "400":
           "$ref": "#/components/responses/BadRequest"
-  /v1/builder:
-    get:
-      tags:
-        - Market data
-      summary: The builder behind this entry
-      description: |-
-        Returns the builder (white-label front end) this request resolves to and its markets. `?builder=` picks one; otherwise the entry domain decides (`Host`, or `X-Forwarded-Host` behind trusted proxies).
-        - A domain bound to no builder returns 200 `PlatformEntry` (`builderId: null`), not an error.
-        - Only `listed` / `closeOnly` markets appear (`closeOnly` = reduce-only). Trade with `symbol`, show `display`; `fees` = front-end fee rates.
-        - Unresolvable → 404 `GatewayBuilderNotFound`.
-      operationId: v1_builder
-      parameters:
-        - name: builder
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "`builderId` (decimal); default: the entry domain"
-        - name: market
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "`signingMarketId` (0–65535): adds `market` = its row in this catalog (`hidden` included), or null if absent (builder-routed orders get 403 `GatewayBuilderMarketNotListed`). Ignored on `PlatformEntry`"
-      responses:
-        "200":
-          description: "The builder view, or `PlatformEntry` when the entry domain has no builder and no `?builder=` is given"
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - "$ref": "#/components/schemas/BuilderView"
-                  - "$ref": "#/components/schemas/PlatformEntry"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "404":
-          description: "`GatewayBuilderNotFound` (`num` 10404): no builder for `?builder=` (`details.builder`) or for the entry domain (`details.domain`)"
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/Error"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  "/v1/builders/{address}/summary":
-    get:
-      tags:
-        - Market data
-      summary: Builder fee summary
-      description: "`builder_fee` ledger entries received by this builder's main account, totalled per token and filtered by `startTime` / `endTime`. Builder-attributed volume is not yet available (planned for v1.1)."
-      operationId: v1_builder_summary
-      parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^0x[0-9a-f]{40}$"
-            description: "EVM address; case-insensitive, lower-case in responses"
-        - name: startTime
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int64
-            description: Unix ms
-          description: Start (inclusive)
-        - name: endTime
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int64
-            description: Unix ms
-          description: End (exclusive)
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 1000
-          description: Page size
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/BuilderSummary"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "404":
-          "$ref": "#/components/responses/NotFound"
   /v1/dexes:
     get:
       tags:
@@ -2915,125 +2815,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandError"
-  /v1/merchant-admission:
-    get:
-      tags:
-        - Merchants
-      summary: Merchant admission
-      description: "Accounts allowed to register a dex, with the instance identity (`networkId` / `genesisHash` / `ledgerEpoch` / `manifestHash`) and snapshot position (`inputSeq` / `hostLogIndex` / `inputPrefix`), from one ledger snapshot."
-      operationId: v1_merchant_admission
-      parameters: []
-      responses:
-        "200":
-          description: "Ledger snapshot view; u64 values as decimal strings"
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/LedgerCut"
-                  - type: object
-                    required:
-                      - admission
-                    properties:
-                      admission:
-                        "$ref": "#/components/schemas/MerchantAdmission"
-        "503":
-          description: "Ledger read view not ready yet; retry later"
-  "/v1/builder-registrations/{id}":
-    get:
-      tags:
-        - Merchants
-      summary: Builder registration
-      description: "Builder registration from one ledger snapshot: owner account and policy epoch, payout account, `configVersion`, `ownerActive` / `councilDisabled` / `active` (= `ownerActive && !councilDisabled`), `configHash`. `configVersion` and the owner's policy epoch are preconditions for governance changes to payout or status."
-      operationId: v1_builder_registration
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "Builder id (decimal, >= 1)"
-      responses:
-        "200":
-          description: One consistent ledger snapshot
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "Builder id malformed or 0 (`invalid_builder`)"
-        "404":
-          description: "Not registered (`unknown_resource`)"
-        "503":
-          description: "Ledger read view not ready; retry later"
-  "/v1/dex-registrations/{id}":
-    get:
-      tags:
-        - Merchants
-      summary: Merchant DEX registration
-      description: A dex registration as submitted, with its status
-      operationId: v1_dex_registration
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Registration id (0x-prefixed 32-byte hex)
-      responses:
-        "200":
-          description: Published ledger snapshot (read-only)
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/LedgerCut"
-                  - type: object
-                    required:
-                      - authority
-                      - dex
-                    properties:
-                      authority:
-                        type: string
-                        enum:
-                          - Council
-                          - Owner
-                        description: "Current governor: `Owner` for an account-owned dex, `Council` for a dex handed to the Council"
-                      dex:
-                        "$ref": "#/components/schemas/DexRegistration"
-        "400":
-          description: "Malformed path parameter (`invalid_registration_id`)"
-        "404":
-          description: "Not found (`unknown_resource`)"
-        "503":
-          description: "Ledger view not ready; retry later"
-  "/v1/dex-owner-proposals/{id}":
-    get:
-      tags:
-        - Merchants
-      summary: DEX owner transfer proposal
-      description: "A dex ownership transfer proposal: original proposal, first accepted envelope, digest, policy epoch and status at certified time. 404 for an unknown id or a non-transfer proposal."
-      operationId: v1_dex_owner_proposal
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Proposal id (0x-prefixed 32-byte hex)
-      responses:
-        "200":
-          description: "Published ledger state. `authorKind` / `oldOwnerKind` say whether an account or the Council proposed / owned; `oldOwner` is 0 for the Council"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "Malformed path parameter (`invalid_proposal_id`)"
-        "404":
-          description: Not found
-        "503":
-          description: "Ledger read view unavailable or not ready; retry later"
   "/v1/custody/{key}":
     get:
       tags:
@@ -5436,7 +5217,7 @@ components:
         - builderId
         - domain
         - homeDex
-      description: "`GET /v1/builder` without `?builder=` on an entry domain with no builder: the platform's own entry (markets via `/v1/markets`)"
+      description: "On an entry domain with no builder: the platform's own entry (markets via `/v1/markets`)"
       properties:
         builderId:
           type: "null"
@@ -6362,7 +6143,7 @@ components:
             builderRate:
               type: string
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "Decimal string. With the builder model on: the **cap** on each builder's own rates (`/v1/builder.fees`; unset = 0); before that: the flat rate on attributed taker fills"
+              description: "Decimal string. With the builder model on: the **cap** on each builder's own rates (unset = 0); before that: the flat rate on attributed taker fills"
             pendingDeployerRate:
               type:
                 - string
@@ -6390,7 +6171,7 @@ components:
             type: string
             pattern: "^[a-z0-9-]{1,24}$"
           maxItems: 8
-          description: "Category codes of the market's dex, in set order; display names in `GET /v1/dexes/{id}` (behind a builder entry: `GET /v1/builder`). Display only"
+          description: "Category codes of the market's dex, in set order; display names in `GET /v1/dexes/{id}`. Display only"
         priceSource:
           type:
             - array
