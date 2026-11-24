@@ -1,6 +1,6 @@
 # REST API conventions
 
-v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/e04c6559f31ee164c06ff8742170aa08c6e29ec4/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
+v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/bf799cd15e60323dcd4c744076c4f27dbbbc6a99/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
 
 ## Choose an endpoint
 

@@ -6,7 +6,7 @@ Read the developer guides for decimal scaling, signing, and receipt handling. Ac
 
 **Test it** sends requests to the preview network `https://dex-preview.unibook.site` (test funds only). Signed writes need a signature made on the client and go through `POST /v1/commands`; to sign and submit one from the browser, use the [API playground](https://dex-preview.unibook.site/app/api-playground/). Each command on the [Trading](trading/commands.md) pages links to it.
 
-[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/e04c6559f31ee164c06ff8742170aa08c6e29ec4/api/openapi-v1.yaml)
+[OpenAPI YAML](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/bf799cd15e60323dcd4c744076c4f27dbbbc6a99/api/openapi-v1.yaml)
 
 - [Market data](market-data.md)
 - [Account](account.md)
