@@ -8,8 +8,8 @@
 |---|---|
 | `account` | 账本账户号：`GET /v1/account/nonce` 返回的 `signingAccountId` |
 | `market` | 市场号：`GET /v1/markets` 返回的 `signingMarketId` |
-| `dex` | DEX 号：`GET /v1/markets` 或 `GET /v1/dexes` 里的 `dex` |
-| `builder` | builder 号：见 `GET /v1/builder` |
+| `dex` | DEX 号：`GET /v1/markets` 里的 `dex` |
+| `builder` | builder 号，由你所用前端的 builder 提供 |
 | `vault` | 金库号：`GET /v1/vaults` |
 | `actor` | 金库管理人的账户号 |
 | `amount` | 以最小单位计的十进制字符串（USDC 6 位小数：`10000000` = 10 USDC） |

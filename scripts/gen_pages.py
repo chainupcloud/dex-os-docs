@@ -21,23 +21,9 @@ pages = {
         "频道、心跳与恢复见 [WebSocket 指南](../developers/websocket.md)。"),
 }
 
-# Role-specific and advanced endpoints: listed in their own section ("Advanced API"), whatever their tag.
-# Every operation of a tag missing from `pages` must be placed here.
-advanced = {
-    "ledger-accounts": ("Ledger accounts and grants", "账本账户与授权",
-        "Ledger-level views by account id or policy, for SDK authors and multi-signer accounts. Single-signer integrations use the address-based reads on the [Account](../account.md) page.",
-        "按账户编号或签名策略查询的账本层视图，给 SDK 作者和多签账户用。单签名人的接入用[账户](../account.md)页里按地址查询的接口即可。",
-        ["GET /v1/accounts", "GET /v1/accounts/{id}", "GET /v1/account/by-address/{address}", "GET /v1/grants", "GET /v1/nonces"]),
-    "self-custody": ("Self-custody and withdrawal tracking", "自托管与提款追踪",
-        "Withdrawal tickets, the funds history, a deposit by receipt, and the escape preview: an estimate of what the account could claim on the custody chain from the frozen root once escape is triggered.",
-        "提款凭证、资金流水、按回执查入金，以及逃生预估：触发逃生后，账户按冻结时的账本根能在托管链上取回多少的估算。",
-        ["GET /v1/accounts/{id}/tickets", "GET /v1/accounts/{id}/tickets/{ticket}", "GET /v1/accounts/{id}/funds-history",
-         "GET /v1/accounts/{id}/escape-preview", "GET /v1/custody/{key}/deposits/{asset}/{version}/{id}"]),
-    "backfill": ("Event backfill and async results", "事件补数与异步结果",
-        "Fill gaps after a WebSocket disconnect (see the [WebSocket guide](../../developers/websocket.md)) and read the final result of vault deposits and claims.",
-        "WebSocket 断线后补齐事件（见 [WebSocket 指南](../../developers/websocket.md)），以及查询金库存入、领取的最终结果。",
-        ["GET /v1/events", "GET /v1/vaults/{id}/transitions/{source}/{ordinal}"]),
-}
+# Endpoints the documentation site leaves out are excluded upstream (dex-os overlay `exclude`); every operation's tag
+# must be in `pages`. `advanced` stays empty unless a future section places operations regardless of tag.
+advanced = {}
 placed = {key: slug for slug, (*_, keys) in advanced.items() for key in keys}
 
 ops = {t: [] for t in pages}

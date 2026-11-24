@@ -8,8 +8,8 @@ Each example below is the command's JSON form: the fields you choose. The SDK (o
 |---|---|
 | `account` | Ledger account id: `signingAccountId` from `GET /v1/account/nonce` |
 | `market` | Market id: `signingMarketId` from `GET /v1/markets` |
-| `dex` | DEX id: `dex` in `GET /v1/markets` or `GET /v1/dexes` |
-| `builder` | Builder id: see `GET /v1/builder` |
+| `dex` | DEX id: `dex` in `GET /v1/markets` |
+| `builder` | Builder id, given by the builder whose front end you trade through |
 | `vault` | Vault id: `GET /v1/vaults` |
 | `actor` | The vault manager's account id |
 | `amount` | Token atoms as a decimal string (USDC has 6 decimals: `10000000` = 10 USDC) |

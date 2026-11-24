@@ -20,7 +20,7 @@ After a ledger re-genesis the network identity changes. A command signed against
 
 ## Accounts and principals
 
-`GET /v1/accounts?member=<address>` lists the account policies that include an address, with policy id, epoch, threshold and members. `soleSigner: true` marks the address's own single-signer account. Subaccounts share their main account's policy; `GET /v1/account/subaccounts?address=` returns each subaccount's `signingAccountId`.
+A wallet's own account is its signing principal. Subaccounts share their main account's policy; `GET /v1/account/subaccounts?address=` returns each subaccount's `signingAccountId`.
 
 ## Integer scaling
 
@@ -28,7 +28,7 @@ Signed prices and sizes are integers: `ticks = price × 10^priceDecimals`, `lots
 
 ## Nonces
 
-Each principal has a separate nonce window per lane. Read it with `GET /v1/nonces?principal=account&policy=<id>&lane=<lane>` (add `grant` and `grantEpoch` for an API wallet), or with `GET /v1/account/nonce?address=…&lane=…`. The window returns `floor`, the highest used value `high` (null if none) and a suggested `next`: values below `floor` or already used are rejected, and `next` and above have never been used.
+Each principal has a separate nonce window per lane. Read it with `GET /v1/account/nonce?address=…&lane=…` (add `signer=` for an API wallet). The window returns `floor`, the highest used value `high` (null if none) and a suggested `next`: values below `floor` or already used are rejected, and `next` and above have never been used.
 
 Writers that share a principal and lane must coordinate allocation. A rejected or unknown write does not mean you should immediately sign the same action again with a new nonce: resolve the original command first (see [Errors and recovery](errors-and-recovery.md)).
 

@@ -1,4 +1,4 @@
-# 授权、注册与治理
+# API 钱包授权
 
 下面每个示例都是命令的 JSON 形态，即需要你填的字段。SDK（或 [API 调试台](https://dex-preview.unibook.site/app/api-playground/)）再补上 nonce 与有效期、签名并编码；HTTP 请求一律是 `POST /v1/commands`，请求体 `{"command":"0x…"}`。调试台在预览网络上运行，用临时私钥和测试资金，会逐步显示读 nonce、EIP-712 待签数据、签好的命令、响应与回执，并能把提交复制成 curl。
 
@@ -136,13 +136,6 @@
 ```
 
 [在 API 调试台里试一下](https://dex-preview.unibook.site/app/api-playground/?cmd=RevokeCapability)
-
-## 注册与治理
-
-下面这些命令要多方参与，没有单人签名的示例，调试台里也没有：
-
-- `RegisterDexV2`、`AcceptDexOwner`、`RegisterBuilder`、`RegisterBuilderLinked`：注册时需要所有者、收款账户、关联方各自确认，请用 SDK 构造。
-- `Propose`、`SubmitAndExecute`、`ExecuteProposal`、`CancelProposal`、`FreezeMarket`、`ReleaseMarketLock`、`PauseTimeSet`、`RestorePausedTimeSet`：由理事会成员用理事会自己的工具签名提交，不在本参考范围内。
 
 ## 用 SDK 构造
 

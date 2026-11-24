@@ -1,6 +1,6 @@
 # REST API 使用约定
 
-v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5122a71ad1a57c1182e3efef807af669d44e9b8c/api/openapi-v1.zh.yaml)。本页解释调用流程，不复制整份接口定义。
+v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/421ecf0450369486ffcd175e3d0de399b1958539/api/openapi-v1.zh.yaml)。本页解释调用流程，不复制整份接口定义。
 
 ## 接口选择
 
@@ -12,7 +12,7 @@ v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完�
 | 签名写入（订单、授权、资金、金库） | `POST /v1/commands` |
 | 充提路由 | `/v1/exchange/cctp/routes`、`/v1/exchange/cctp/quote`、`/v1/exchange/cctp/withdraw-quote` |
 | 金库 | `/v1/vaults`、`/v1/vaults/{id}` |
-| 请求结论与补拉 | `/v1/requests/{requestId}`、`/v1/events` |
+| 请求结论 | `/v1/requests/{requestId}` |
 
 读取账户时使用 `address` 和可选 `subaccount`，或单独使用 `vault`，两种方式互斥。永续和现货市场可以同名：名称有歧义时加 `kind`（`perp` 或 `spot`），否则请求会被拒绝，服务端不会替你选。`orderId` 等 64 位数值是字符串。不要将所有数值字符串强制转为 JavaScript Number。
 
