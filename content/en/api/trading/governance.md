@@ -141,7 +141,7 @@ Signed by: account (main wallet); API wallets cannot · nonce lane `management`
 
 These commands need several parties, so they have no single-signer example and are not in the playground:
 
-- `RegisterDexV2`, `AcceptDexOwner`, `RegisterBuilder`, `RegisterBuilderLinked`: registration with acceptances from the owner, payout and linked accounts; build them with the SDK. Reads: [Builders and DEX operators](../advanced/builders.md).
+- `RegisterDexV2`, `AcceptDexOwner`, `RegisterBuilder`, `RegisterBuilderLinked`: registration with acceptances from the owner, payout and linked accounts; build them with the SDK.
 - `Propose`, `SubmitAndExecute`, `ExecuteProposal`, `CancelProposal`, `FreezeMarket`, `ReleaseMarketLock`, `PauseTimeSet`, `RestorePausedTimeSet`: signed by Council members with the Council's own tooling; not covered by this reference.
 
 ## Built with the SDK

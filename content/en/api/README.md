@@ -15,9 +15,8 @@ Read the developer guides for decimal scaling, signing, and receipt handling. Ac
 - [Funds](funds.md)
 - [Trading](trading.md)
 
-Builder and advanced API (for builders and DEX operators, SDK authors, multi-signer accounts and self-custody tracking):
+Advanced API (for SDK authors, multi-signer accounts and self-custody tracking):
 
-- [Builders and DEX operators](advanced/builders.md)
 - [Ledger accounts and grants](advanced/ledger-accounts.md)
 - [Self-custody and withdrawal tracking](advanced/self-custody.md)
 - [Event backfill and async results](advanced/backfill.md)

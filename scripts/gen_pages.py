@@ -21,14 +21,9 @@ pages = {
         "频道、心跳与恢复见 [WebSocket 指南](../developers/websocket.md)。"),
 }
 
-# Role-specific and advanced endpoints: listed in their own section ("Builder and advanced API"), whatever their tag.
+# Role-specific and advanced endpoints: listed in their own section ("Advanced API"), whatever their tag.
 # Every operation of a tag missing from `pages` must be placed here.
 advanced = {
-    "builders": ("Builders and DEX operators", "Builder 与 DEX 部署方",
-        "Reads for running a white-label front end (builder) or a DEX: entry resolution, builder fee income, merchant admission and registration status. The matching commands: [Merchants and builders](../trading/merchants.md).",
-        "运营白标前端（builder）或 DEX 时用的读接口：入口解析、builder 费收入、商户准入与注册状态。对应的命令见[商户与 builder](../trading/merchants.md)。",
-        ["GET /v1/builder", "GET /v1/builders/{address}/summary", "GET /v1/merchant-admission",
-         "GET /v1/dex-registrations/{id}", "GET /v1/builder-registrations/{id}", "GET /v1/dex-owner-proposals/{id}"]),
     "ledger-accounts": ("Ledger accounts and grants", "账本账户与授权",
         "Ledger-level views by account id or policy, for SDK authors and multi-signer accounts. Single-signer integrations use the address-based reads on the [Account](../account.md) page.",
         "按账户编号或签名策略查询的账本层视图，给 SDK 作者和多签账户用。单签名人的接入用[账户](../account.md)页里按地址查询的接口即可。",
