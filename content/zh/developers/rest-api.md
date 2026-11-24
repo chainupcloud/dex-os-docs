@@ -1,6 +1,6 @@
 # REST API 使用约定
 
-v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/bf799cd15e60323dcd4c744076c4f27dbbbc6a99/api/openapi-v1.zh.yaml)。本页解释调用流程，不复制整份接口定义。
+v1 使用 `/v1` 前缀、JSON、camelCase 字段和 Unix 毫秒时间戳。完整参数与响应以目标网关提供的 OpenAPI 为准；网关上的 Scalar 入口为 `/docs?spec=v1`，原始规格为 `/app/openapi-v1.json`。文档仓库提供[可下载的 OpenAPI 副本](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5122a71ad1a57c1182e3efef807af669d44e9b8c/api/openapi-v1.zh.yaml)。本页解释调用流程，不复制整份接口定义。
 
 ## 接口选择
 

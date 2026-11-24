@@ -4,6 +4,6 @@
 
 ## GET /v1/ws
 
-{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/bf799cd15e60323dcd4c744076c4f27dbbbc6a99/api/openapi-v1.zh.yaml" path="/v1/ws" method="get" %}
-https://raw.githubusercontent.com/chainupcloud/dex-os-docs/bf799cd15e60323dcd4c744076c4f27dbbbc6a99/api/openapi-v1.zh.yaml
+{% openapi src="https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5122a71ad1a57c1182e3efef807af669d44e9b8c/api/openapi-v1.zh.yaml" path="/v1/ws" method="get" %}
+https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5122a71ad1a57c1182e3efef807af669d44e9b8c/api/openapi-v1.zh.yaml
 {% endopenapi %}
