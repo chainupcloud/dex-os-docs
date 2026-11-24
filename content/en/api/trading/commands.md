@@ -22,10 +22,7 @@ Other command kinds are submitted only by platform services, such as certified l
 | Funds | account | `funds` | [Margin, funds and vaults](account-funds.md) |
 | Vaults | account | `funds` | [Margin, funds and vaults](account-funds.md) |
 | Account settings | account | `management` | [Margin, funds and vaults](account-funds.md) |
-| Merchant (DEX) | DEX owner or its API wallet; a few commands are owner-only | `management` | [Merchants and builders](merchants.md) |
-| Merchant insurance | DEX owner | `funds` | [Merchants and builders](merchants.md) |
-| Builder | builder owner or its API wallet | `management` | [Merchants and builders](merchants.md) |
-| Grants, registration and governance | depends on the command | `management` | [Grants, registration and governance](governance.md) |
+| API wallets | account (main wallet) | `management` | [API wallets](governance.md) |
 
 - "Account" means the members of the account's signing policy (the main wallet), signing up to the policy threshold.
 - An API wallet signs only within its grant. Operations, accounts or markets outside the grant, and groups an API wallet cannot sign, are rejected with `CapabilityDenied`.

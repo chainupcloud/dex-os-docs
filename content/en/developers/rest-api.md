@@ -1,6 +1,6 @@
 # REST API conventions
 
-v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/5122a71ad1a57c1182e3efef807af669d44e9b8c/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
+v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps. Consult the target gateway's OpenAPI for complete parameters and responses. The gateway serves Scalar at `/docs?spec=v1` and the raw specification at `/app/openapi-v1.json`. The documentation repository provides a [downloadable OpenAPI copy](https://raw.githubusercontent.com/chainupcloud/dex-os-docs/421ecf0450369486ffcd175e3d0de399b1958539/api/openapi-v1.yaml). This page explains integration behavior without duplicating the entire reference.
 
 ## Choose an endpoint
 
@@ -12,7 +12,7 @@ v1 uses the `/v1` prefix, JSON, camelCase fields and Unix millisecond timestamps
 | Signed writes (orders, grants, funds, vaults) | `POST /v1/commands` |
 | Deposit and withdrawal routes | `/v1/exchange/cctp/routes`, `/v1/exchange/cctp/quote`, `/v1/exchange/cctp/withdraw-quote` |
 | Vaults | `/v1/vaults`, `/v1/vaults/{id}` |
-| Request outcomes and backfill | `/v1/requests/{requestId}`, `/v1/events` |
+| Request outcomes | `/v1/requests/{requestId}` |
 
 Account reads select `address` plus optional `subaccount`, or `vault` alone; the two selectors are mutually exclusive. A perpetual and a spot market can share a name: add `kind` (`perp` or `spot`) where a name is ambiguous, otherwise the request is rejected rather than guessed. `orderId` and other 64-bit values are strings. Do not coerce every numeric string into a JavaScript Number.
 

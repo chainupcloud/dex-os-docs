@@ -30,11 +30,4 @@
   - [命令总览](api/trading/commands.md)
   - [下单与撤单](api/trading/orders.md)
   - [保证金、资金与金库](api/trading/account-funds.md)
-  - [商户与 builder](api/trading/merchants.md)
-  - [授权、注册与治理](api/trading/governance.md)
-
-## 进阶 API
-
-- [账本账户与授权](api/advanced/ledger-accounts.md)
-- [自托管与提款追踪](api/advanced/self-custody.md)
-- [事件补数与异步结果](api/advanced/backfill.md)
+  - [API 钱包授权](api/trading/governance.md)

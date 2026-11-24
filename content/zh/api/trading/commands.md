@@ -22,10 +22,7 @@
 | 资金 | 账户 | `funds` | [保证金、资金与金库](account-funds.md) |
 | 金库 | 账户 | `funds` | [保证金、资金与金库](account-funds.md) |
 | 账户设置 | 账户 | `management` | [保证金、资金与金库](account-funds.md) |
-| 商户（DEX） | DEX 所有者或其 API 钱包；个别命令只能由所有者签 | `management` | [商户与 builder](merchants.md) |
-| 商户保险金 | DEX 所有者 | `funds` | [商户与 builder](merchants.md) |
-| builder | builder 所有者或其 API 钱包 | `management` | [商户与 builder](merchants.md) |
-| 授权、注册与治理 | 按命令而定 | `management` | [授权、注册与治理](governance.md) |
+| API 钱包授权 | 账户（主钱包） | `management` | [API 钱包授权](governance.md) |
 
 - 「账户」指账户签名策略的成员（主钱包），按策略的门限签名。
 - API 钱包只能签授权范围内的命令。授权没有覆盖的操作、账户或市场，以及 API 钱包不能签的分组，都会以 `CapabilityDenied` 拒绝。

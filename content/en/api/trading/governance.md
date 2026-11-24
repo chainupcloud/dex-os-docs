@@ -1,4 +1,4 @@
-# Grants, registration and governance
+# API wallets
 
 Each example below is the command's JSON form: the fields you choose. The SDK (or the [API playground](https://dex-preview.unibook.site/app/api-playground/)) adds the nonce and validity window, signs it and encodes it; the HTTP request is always `POST /v1/commands` with `{"command":"0x…"}`. The playground runs on the preview network with a throwaway key and test funds: it shows the nonce read, the EIP-712 typed data, the signed command, the response and the receipt, and copies the submission as curl.
 
@@ -136,13 +136,6 @@ Signed by: account (main wallet); API wallets cannot · nonce lane `management`
 ```
 
 [Try it in the API playground](https://dex-preview.unibook.site/app/api-playground/?cmd=RevokeCapability)
-
-## Registration and governance
-
-These commands need several parties, so they have no single-signer example and are not in the playground:
-
-- `RegisterDexV2`, `AcceptDexOwner`, `RegisterBuilder`, `RegisterBuilderLinked`: registration with acceptances from the owner, payout and linked accounts; build them with the SDK.
-- `Propose`, `SubmitAndExecute`, `ExecuteProposal`, `CancelProposal`, `FreezeMarket`, `ReleaseMarketLock`, `PauseTimeSet`, `RestorePausedTimeSet`: signed by Council members with the Council's own tooling; not covered by this reference.
 
 ## Built with the SDK
 

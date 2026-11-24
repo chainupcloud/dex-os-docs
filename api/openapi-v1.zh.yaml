@@ -823,7 +823,7 @@ paths:
       description: |-
         本账户的订单事件，每行一个：已接受 / 成交 / 已撤单 / 已过期，条件单另有已下单 / 已触发 / 已拒绝 / 自动撤单。
 
-        - 分页游标与 `/v1/events` 相同（`after` / `upper` / `hasMore`）；`order=desc` = 最新在前。
+        - 按 `after` / `upper` / `hasMore` 分页；`order=desc` = 最新在前。
         - 按 `orderId` 归并可得每个订单一行。
         - TWAP 的 `startMs` 是父订单执行时的账本时间（即该行的 `ts`）。
       operationId: v1_order_history
@@ -1132,128 +1132,6 @@ paths:
                       "$ref": "#/components/schemas/Subaccount"
         "400":
           "$ref": "#/components/responses/BadRequest"
-  "/v1/account/by-address/{address}":
-    get:
-      tags:
-        - Account
-      summary: "地址下的账户"
-      description: |-
-        与该地址关联的账户：`main`（`?address=` 读取的账户，连同子账户）、`legacyExtra`（额外的单签账户，无法通过 `?address=` 访问）和 `multisig`（包含该地址的多成员策略账户；门限 k / 成员数 n）。
-        - `legacyExtra` + `multisig` 按策略 ID 升序合并分页（`next` → `after`）；`main` 在每页重复出现。
-        - 无账户：返回 200，`main: null`，列表为空。
-        - 分页基于实时数据而非快照；账本变化时请从第一页重新开始。
-      operationId: v1_account_by_address
-      parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^0x[0-9a-fA-F]{40}$"
-          description: "要查询的地址"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-            default: 50
-          description: "每页 `legacyExtra` + `multisig` 的行数"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "从该策略 ID 之后继续（上一页的 `next`）"
-        - "$ref": "#/components/parameters/MinSeq"
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  address:
-                    type: string
-                    pattern: "^0x[0-9a-f]{40}$"
-                    description: "EVM 地址（响应中为小写，请求中不区分大小写）"
-                  main:
-                    type:
-                      - object
-                      - "null"
-                    properties:
-                      signingAccountId:
-                        type: integer
-                        description: "**仅用于签名。** 签名命令中作为 `inner_account` 的账户编号（子账户由主策略签名）"
-                      policyId:
-                        type: string
-                        description: "账户策略 ID，十进制字符串；供 `/v1/nonces?principal=account&policy=` 和 `/v1/grants?policy=` 使用"
-                      policyEpoch:
-                        type: string
-                        description: "签名策略的当前纪元，十进制字符串；每次更换密钥时递增"
-                      subaccounts:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            subaccount:
-                              type: integer
-                              minimum: 1
-                              description: "子账户序号（`?address=&subaccount=N`）"
-                            signingAccountId:
-                              type: integer
-                              description: "**仅用于签名。** 签名命令中作为 `inner_account` 的账户编号（子账户由主策略签名）"
-                            policyEpoch:
-                              type: string
-                              description: "签名策略的当前纪元，十进制字符串；每次更换密钥时递增"
-                  legacyExtra:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        signingAccountId:
-                          type: integer
-                          description: "**仅用于签名。** 签名命令中作为 `inner_account` 的账户编号（子账户由主策略签名）"
-                        policyId:
-                          type: string
-                          description: "账户策略 ID，十进制字符串；供 `/v1/nonces?principal=account&policy=` 和 `/v1/grants?policy=` 使用"
-                        policyEpoch:
-                          type: string
-                          description: "签名策略的当前纪元，十进制字符串；每次更换密钥时递增"
-                  multisig:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        signingAccountId:
-                          type: integer
-                          description: "**仅用于签名。** 签名命令中作为 `inner_account` 的账户编号（子账户由主策略签名）"
-                        policyId:
-                          type: string
-                          description: "账户策略 ID，十进制字符串；供 `/v1/nonces?principal=account&policy=` 和 `/v1/grants?policy=` 使用"
-                        policyEpoch:
-                          type: string
-                          description: "签名策略的当前纪元，十进制字符串；每次更换密钥时递增"
-                        threshold:
-                          type: integer
-                          description: "k：所需签名数"
-                        memberCount:
-                          type: integer
-                          description: "n：策略成员数"
-                  next:
-                    type:
-                      - string
-                      - "null"
-                    description: "作为 `after` 传入以获取下一页；最后一页为 `null`"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "412":
-          "$ref": "#/components/responses/ReplicaBehind"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
   /v1/account/vaults:
     get:
       tags:
@@ -1375,243 +1253,12 @@ paths:
                       "$ref": "#/components/schemas/AgentGrant"
         "400":
           "$ref": "#/components/responses/BadRequest"
-  /v1/dexes:
-    get:
-      tags:
-        - Market data
-      summary: "builder 交易所列表"
-      description: "按 ID 列出每个交易所，用 `after` / `limit` → `next` 分页：所有者、保证金代币、保险账户、附加费、保证金表、市场和短代码 `code`（其市场代码前缀）。`markets` 仅含永续；`spotMarkets` 为现货交易对。每行另带账本登记（`DexLedgerRow`：所有者、配置、私有喂价配额、`marketCount`、`authority`）；账本快照在顶层。"
-      operationId: v1_dexes
-      parameters:
-        - name: ownerAccount
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "当前所有者账户 ID（十进制）；省略则列出全部"
-        - name: shortName
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[A-Z][A-Z0-9]{1,7}$"
-          description: "精确短名；此时列表有 0 或 1 条。账本会拒绝的短名（小写、长度不符、保留名 `MAIN`）返回 400 `invalid_short_name`"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "1..1000，默认 100"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "从该交易所 ID（十进制）之后开始；省略则从头开始。下一页：传入响应中的 `next`"
-      responses:
-        "200":
-          description: "某个已发布的账本快照；`u64` 值为十进制字符串"
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/LedgerCut"
-                  - type: object
-                    required:
-                      - ownerAccount
-                      - dexes
-                      - next
-                    properties:
-                      ownerAccount:
-                        type:
-                          - integer
-                          - "null"
-                        description: "`ownerAccount` 筛选条件，未提供时为 `null`"
-                      dexes:
-                        type: array
-                        items:
-                          allOf:
-                            - "$ref": "#/components/schemas/Dex"
-                            - "$ref": "#/components/schemas/DexLedgerRow"
-                      next:
-                        type:
-                          - integer
-                          - "null"
-                        description: "作为 `after` 传入以获取下一页；最后一页为 `null`"
-        "400":
-          description: "查询参数格式错误：`invalid_owner_account` / `invalid_short_name` / `invalid_limit` / `invalid_after` / `unsupported_parameter`"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  "/v1/dexes/{id}":
-    get:
-      tags:
-        - Market data
-      summary: "单个交易所"
-      description: "`/v1/dexes` 中的一行（`markets` = 永续，`spotMarkets` = 现货），外加 `categories`：该交易所自有分类及其市场 `tags` 用到的平台模板，按 `sort` 再按代码排序，即 `/v1/markets[].tags` 的显示名称。最多滞后 2 秒。"
-      operationId: v1_dex
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/Dex"
-                  - type: object
-                    required:
-                      - dex
-                      - categories
-                    properties:
-                      dex:
-                        type: integer
-                      categories:
-                        type: array
-                        items:
-                          "$ref": "#/components/schemas/CategoryView"
-                  - "$ref": "#/components/schemas/DexLedgerRow"
-                  - "$ref": "#/components/schemas/LedgerCut"
-        "404":
-          "$ref": "#/components/responses/NotFound"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  /v1/events:
-    get:
-      tags:
-        - Account
-      summary: "事件回补"
-      description: |-
-        执行层原始事件，结构与 WebSocket `events` 频道相同。仅升序（`order=desc` 返回 400）。
-
-        - 带 `address`：该账户的事件，每页是满的；`symbol` 进一步限定到一个市场。
-        - 不带 `address`：完整日志；`symbol` 在每页内过滤，页面可能稀疏或为空。沿 `next` 翻页直到 `hasMore=false`。
-        - `OrderAttributed` / `FillAttributed` 不在此处或 WebSocket 上发布。
-      operationId: v1_events
-      parameters:
-        - name: symbol
-          in: query
-          required: false
-          schema:
-            type: string
-            description: "市场符号，如 `BTC-USD`（永续）或 `BTC-USDC`（现货）；商户交易所的市场为 `<code>:BTC-USD`（`:` 可编码为 `%3A`）；不区分大小写"
-            examples:
-              - BTC-USD
-          description: ""
-        - "$ref": "#/components/parameters/MarketKind"
-        - name: address
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^0x[0-9a-f]{40}$"
-            description: "EVM 地址；不区分大小写，响应中为小写"
-          description: ""
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-            description: "事件 ID `<seq>-<sub>-<idx>`；与回补游标及 WebSocket 帧中的 `id` 相同"
-          description: "游标：上一页的 `next`"
-        - name: epoch
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "第一页返回的账本纪元；给出 `after` 时须与 `upper` 一同提供（账本已重置时返回 409 `history_epoch_mismatch`）"
-        - name: upper
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-          description: "第一页返回的固定上界；给出 `after` 时须与 `epoch` 一同提供，否则返回 400。超出本副本的完整历史：400 `GatewayHistoryIncomplete`，稍后重试"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 200
-          description: "每页条数"
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/EventsPage"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "404":
-          "$ref": "#/components/responses/NotFound"
-  /v1/fees:
-    get:
-      tags:
-        - Market data
-      summary: "费率表"
-      description: "标准流动性档位表；账户费率见 `GET /v1/account`，市场级覆盖见 `GET /v1/markets`。交易所部署者在 `RegisterDexAsset` 中从 `dexSelectableTiers` 选档位；账本不允许的档位以 `UnknownLiquidityTier` 失败。"
-      operationId: v1_fees
-      parameters: []
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  liquidityTiers:
-                    type: object
-                    properties:
-                      tiers:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            tier:
-                              type: integer
-                            initialMarginPpm:
-                              type: integer
-                            maintenanceFractionPpm:
-                              type: integer
-                              description: "MMR = IMR × 本值 / `1e6`"
-                            impactNotionalQuote:
-                              type: string
-                            oiLowerCapQuote:
-                              type: string
-                              description: "\"0\" = 关闭 OIMF"
-                            oiUpperCapQuote:
-                              type: string
-                            maxLeverage:
-                              type: integer
-                              description: "`1e6 / initialMarginPpm`，仅供展示"
-                            dexSelectable:
-                              type: boolean
-                              description: "部署者可在 `RegisterDexAsset` 中选用此档位；与 `defaultTier` 参数相同的档位只以 `defaultTier` 提供"
-                      defaultTier:
-                        type: integer
-                        description: "7 = `IML_5x`；`RegisterDexAsset` 未指定档位时也用它"
-                      dexSelectableTiers:
-                        type: array
-                        items:
-                          type: integer
-                        description: "提供给部署者的档位，升序；任意两档参数都不相同"
-                  note:
-                    type: string
   /v1/markets:
     get:
       tags:
         - Market data
       summary: "市场列表"
-      description: "账本上的每个市场，按 `signingMarketId` 排列；市场有目录名称之前 `symbol` 为 `null`。价格和数量是按 `priceDecimals` / `sizeDecimals` 精确换算的十进制字符串。每行另带账本规格（`MarketLedger`：规格与资产版本、准入、预言机状态与策略）；账本快照在顶层。每个交易所已用的市场数：`/v1/dexes` 的 `marketCount`。"
+      description: "每个市场，按 `signingMarketId`（签名命令中使用的市场编号）排列；市场有名称之前 `symbol` 为 `null`。价格和数量是按 `priceDecimals` / `sizeDecimals` 精确换算的十进制字符串。"
       operationId: v1_markets
       parameters:
         - "$ref": "#/components/parameters/MinSeq"
@@ -2107,8 +1754,7 @@ paths:
           `events`（`{kind, data}`）、`businessRejected`、`seq` / `sub`，批量命令逐项见 `items`。`resultsPending`
           为 `true` 时，`outcome` / `events` 为 `null`：继续轮询。只表示命令本身完成：目标治理提案不一定已执行，
           提款不一定已最终到账。
-        - `AuthorizationRejected`（200）：已定序但未通过授权；nonce 未被消耗；原因见 `stableError` / `errorCode`，
-          日志位置见 `position`。仅在节点的近期结果窗口内这样报告，之后为 `Unknown`。
+        - `AuthorizationRejected`（200）：已定序但未通过授权；nonce 未被消耗；原因见 `stableError` / `errorCode`。仅在节点的近期结果窗口内这样报告，之后为 `Unknown`。
         - `Unknown`（404）：本节点没有记录。这**不能**证明命令从未执行；`nonceConsumed` 为 `null`。
         - `Conflict`（409）：账本记录的签名版本与你的 `digest` 不同（响应中返回）；不是你所签版本的成功。
 
@@ -2301,7 +1947,6 @@ paths:
         - `managerSubaccount` / `creatorSubaccount`：经理 / 创建者的账户在其所有者钱包下的子账户索引；金库未被认领时 `managerSubaccount` 为 `null`。
         - 判断管理权限请用 `authorizedManager`（账本已确认），不要用 `manager`（资金侧，可能更早生效）。
         - `confirmedTradingHalt`：最近确认的暂停交易状态；`pendingClaim`：待处理的经理认领。
-        - 异步金库任务的最终状态：`/v1/vaults/{id}/transitions/{source}/{ordinal}`。
       operationId: v1_vaults
       parameters:
         - name: dex
@@ -2324,7 +1969,7 @@ paths:
       tags:
         - Vaults
       summary: "金库详情"
-      description: "单个社区金库；字段与 `/vaults*` 一致。另给出 `managerSubaccount` / `creatorSubaccount`（在所属钱包下的子账户序号，同 `?subaccount=`；金库未被认领时 `managerSubaccount` 为 `null`）、`authorizedManager`、`confirmedTradingHalt` 和 `pendingClaim`；`manager` 仍是资金侧字段。异步金库任务的最终状态：`/v1/vaults/{id}/transitions/{source}/{ordinal}`。"
+      description: "单个社区金库；字段与 `/vaults*` 一致。另给出 `managerSubaccount` / `creatorSubaccount`（在所属钱包下的子账户序号，同 `?subaccount=`；金库未被认领时 `managerSubaccount` 为 `null`）、`authorizedManager`、`confirmedTradingHalt` 和 `pendingClaim`；`manager` 仍是资金侧字段。"
       operationId: v1_vault
       parameters:
         - name: id
@@ -2339,28 +1984,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/VaultDetail"
-        "404":
-          "$ref": "#/components/responses/NotFound"
-  "/v1/vaults/{id}/depositors":
-    get:
-      tags:
-        - Vaults
-      summary: "存入者"
-      description: "社区金库的存入者；字段与 `/vaults*` 一致。"
-      operationId: v1_vault_depositors
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: "成功"
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/VaultDepositors"
         "404":
           "$ref": "#/components/responses/NotFound"
   "/v1/vaults/{id}/nav":
@@ -2396,121 +2019,6 @@ paths:
       responses:
         "101":
           description: "切换协议"
-  "/v1/vaults/{id}/transitions/{source}/{ordinal}":
-    get:
-      tags:
-        - Vaults
-      summary: "查询金库异步任务状态"
-      operationId: v1_vault_transition
-      description: |-
-        按原请求的日志序号（`source`）和逻辑命令序号（`ordinal`）查询金库认领或存入任务的状态：`pending`，或最终状态 `succeeded` / `rejected`。
-
-        - 付款请求的 `wait=fold` 回执不表示铸造、退款或授权已到最终状态；请在此查询。
-        - 503：历史不可用或读模型尚未到达 `source`；请稍后重试。
-        - 404：读模型已越过 `source` 但没有该任务的记录；并非业务失败。
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 65535
-          description: "金库 ID"
-        - name: source
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-            description: "日志序号，十进制字符串"
-          description: "原请求的完整日志序号（不是确认命令的）"
-        - name: ordinal
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 65535
-          description: "原请求内的逻辑命令序号（不是物理记录子索引）"
-      responses:
-        "200":
-          description: "待处理状态或持久化的最终状态"
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    required:
-                      - status
-                      - sourceLogIdx
-                      - sourceOrdinal
-                      - slot
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - pending
-                      sourceLogIdx:
-                        type: string
-                        pattern: "^[0-9]+$"
-                        description: "日志序号，十进制字符串"
-                      sourceOrdinal:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-                      slot:
-                        type: integer
-                        minimum: 0
-                        maximum: 4095
-                  - type: object
-                    required:
-                      - status
-                      - sourceLogIdx
-                      - sourceOrdinal
-                      - slot
-                      - errorCode
-                      - confirmationSeq
-                      - confirmationSub
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - succeeded
-                          - rejected
-                      sourceLogIdx:
-                        type: string
-                        pattern: "^[0-9]+$"
-                        description: "日志序号，十进制字符串"
-                      sourceOrdinal:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-                      slot:
-                        type: integer
-                        minimum: 0
-                        maximum: 4095
-                      errorCode:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-                        description: "成功为 0；否则为原命令的数字账本错误码"
-                      confirmationSeq:
-                        type: string
-                        pattern: "^[0-9]+$"
-                        description: "日志序号，十进制字符串"
-                      confirmationSub:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-        "400":
-          description: "路径参数无效"
-        "404":
-          description: "读模型已越过 `source`，但历史中没有该任务的记录；不表示 `rejected`"
-        "500":
-          description: "执行历史中的确认记录已损坏"
-        "503":
-          description: "读模型或历史不可用，或读模型尚未到达 `source`；请稍后重试"
   /v1/account/subaccounts/name:
     post:
       tags:
@@ -2644,7 +2152,7 @@ paths:
                           minimum: 0
                         - type: string
                           pattern: "^[0-9]+$"
-                      description: "签名所用的账户策略纪元（`GET /v1/accounts/{id}` 的 `policyEpoch`）；非当前纪元时返回 409 `GatewayConflict`，`details.policyEpoch` = 当前纪元"
+                      description: "签名所用的账户策略纪元；非当前纪元时返回 409 `GatewayConflict`，`details.policyEpoch` = 当前纪元"
                     signatures:
                       type: array
                       minItems: 1
@@ -2811,149 +2319,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandError"
-  "/v1/custody/{key}":
-    get:
-      tags:
-        - Funds
-      summary: "托管组"
-      description: "托管组的账本状态：目录版本、`mode`（`normal` / `escapePending` / `frozen`）、下一个根序号和上次快照点时间、包含该组且已切出但尚未被接受的根、最近被接受的根、逃生和冻结状态、链上观测，以及按资产统计的入金 / 退款 / 支付计数及累计哈希。另含 `registration`（十六进制）、`registrationHash`（= 注册该组的治理操作的 `configHash`）和 `firstCheckpointSeq`（创世组为 1）。"
-      operationId: v1_custody_group
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "托管组的 `custodyKeyHash`，0x 32 字节十六进制"
-      responses:
-        "200":
-          description: "账本快照视图"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "路径参数格式错误（`invalid_custody_key_hash`）"
-        "404":
-          description: "未知托管组（`unknown_custody_group`）"
-        "503":
-          description: "账本读视图未就绪；请重试"
-  /v1/accounts:
-    get:
-      tags:
-        - Account
-      summary: "按策略成员查询账户"
-      description: "策略成员包含该地址的账户，按策略 ID 升序，用 `after` / `limit` → `next` 分页：账户 ID、策略 ID 与纪元、门限、成员、退出地址。只有 `soleSigner` 账户（唯一成员、门限 1）会经 `?address=` 归属到该地址，因为任何人都能把你的地址加进多成员策略。"
-      operationId: v1_accounts_of_member
-      parameters:
-        - name: member
-          in: query
-          required: true
-          schema:
-            type: string
-          description: "成员地址（0x + 40 位十六进制）"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "取自 `next` 的策略 ID（十进制）；本页从它之后开始"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "1..1000，默认 100"
-      responses:
-        "200":
-          description: "已发布的账本状态"
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - member
-                  - accounts
-                  - next
-                properties:
-                  member:
-                    type: string
-                  accounts:
-                    type: array
-                    items:
-                      type: object
-                  next:
-                    type:
-                      - string
-                      - "null"
-                    description: "作为 `after` 传入以取下一页；最后一页为 `null`"
-        "400":
-          description: "查询参数格式错误：`invalid_member_address` / `invalid_after` / `invalid_limit`"
-        "503":
-          description: "本节点的账本读视图不可用或尚未就绪；请稍后重试"
-  "/v1/accounts/{id}":
-    get:
-      tags:
-        - Account
-      summary: "按 ID 读账本账户"
-      description: |-
-        账户的退出策略：策略 ID 和纪元、退出地址、门限和成员。
-
-        - `id` 可以是主账户或派生账户（子账户 / 商户分桶）；`account` 始终是根账户，`queried` 描述 `id`，`derived` 列出派生账户及其拥有的交易所保险基金（`dexFund`）。
-        - 没有账户根的 ID（保险基金、平台账户、未分配的 ID）返回 404。
-        - `builderApprovals`：根账户的 builder 费用批准 `[{builder, maxFeePpm}]`，按 builder 升序。
-      operationId: v1_account_by_id
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "账户 ID（十进制 32 位整数）"
-      responses:
-        "200":
-          description: "已发布的账本状态（只读）"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "路径参数格式错误（`invalid_account_id`）"
-        "404":
-          description: "未找到（`unknown_account`）"
-        "503":
-          description: "本节点的账本读视图尚未就绪；请稍后重试"
-  "/v1/accounts/{id}/tickets/{ticket}":
-    get:
-      tags:
-        - Account
-      summary: "提款票据"
-      description: "账本是否仍为该账户持有这张提款票据；票据被取消或付款结算后 `ticket` 为 `null`。"
-      operationId: v1_account_ticket
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "账户 ID（十进制 `u32`）"
-        - name: ticket
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "票据 ID，0x 32 字节十六进制"
-      responses:
-        "200":
-          description: "账本快照视图"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "路径参数格式错误"
-        "503":
-          description: "账本读视图未就绪；请重试"
   /v1/grants:
     get:
       tags:
@@ -2985,106 +2350,6 @@ paths:
           description: "策略不存在（`unknown_principal`）"
         "503":
           description: "账本视图尚未就绪；请稍后重试"
-  /v1/nonces:
-    get:
-      tags:
-        - Account
-      summary: "nonce 窗口"
-      description: "签名主体当前纪元中某条 nonce 序列的窗口：`floor`、已用最高的 `high`（未使用时为 `null`）和建议的 `next`。`agent` / `service` 主体必须传 `grant`；`principal=council` 返回理事会 `management` nonce 序列的窗口，不接受主体 ID 或授权。带 `nonce` 时，`consumed` 表示该 nonce 是否已被消耗：`true`、`false`，低于 `floor` 时为 `null`（无法判定）。"
-      operationId: v1_nonces
-      parameters:
-        - name: principal
-          in: query
-          required: true
-          schema:
-            type: string
-            enum:
-              - account
-              - agent
-              - service
-              - council
-          description: "签名主体类型：`account` / `agent` / `service` / `council`"
-        - name: policy
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "策略 ID（用于 `account` / `agent`）"
-        - name: service
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "服务 ID（用于 `service`）"
-        - name: lane
-          in: query
-          required: true
-          schema:
-            type: string
-          description: "nonce 序列（`lane`）：`trade` / `funds` / `management`"
-        - name: grant
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "授权 ID（用于 `agent` / `service`）"
-        - name: grantEpoch
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "授权纪元（用于 `agent` / `service`）"
-        - name: nonce
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "可选，要查询的 nonce（64 位无符号十进制）；应答多一个 `consumed`（格式错误为 `invalid_nonce`）"
-      responses:
-        "200":
-          description: "账本快照视图；64 位整数为十进制字符串"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "查询参数格式错误"
-        "404":
-          description: "未找到签名主体"
-        "503":
-          description: "本节点账本状态尚不可用；请稍后重试"
-  "/v1/accounts/{id}/escape-preview":
-    get:
-      tags:
-        - Account
-      summary: "逃生叶子预览"
-      description: |-
-        基于当前账本视图估算该账户每种资产的逃生叶子：`own`、`inTransit`（在途资金，如托管中暂扣的提款）、`vaults[]`（金库份额价值按冻结估值穿透计入）、`vaultAmount`、`ledgerTotal`、`claimable` / `withdrawReserved` / `paidObserved`（原始单位，向下取整）。
-
-        - **仅为估算**：准确值以逃生时基于冻结根的计算为准。
-        - 金库账户返回 404 `vault_account_has_no_leaf`；未知账户或平台账户返回 `unknown_account`。
-      operationId: v1_account_escape_preview
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "账户 ID（十进制 32 位整数）"
-      responses:
-        "200":
-          description: "一致的账本快照视图；64 位整数和金额为十进制字符串"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "`id` 不是十进制数（`invalid_account_id`）"
-        "404":
-          description: "`unknown_account`（未知账户或平台账户）或 `vault_account_has_no_leaf`（金库账户）"
-        "503":
-          description: "读视图尚未就绪，或无法在其上计算叶子（`escape_preview_unavailable`）；请稍后重试"
   /v1/custody:
     get:
       tags:
@@ -3105,8 +2370,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  manifestHash:
-                    type: string
                   groups:
                     type: array
                     items:
@@ -3218,7 +2481,6 @@ paths:
                   groupCatalogVersion:
                     type: string
                 required:
-                  - manifestHash
                   - groups
         "400":
           description: "请求格式错误"
@@ -3226,150 +2488,6 @@ paths:
           description: "未找到（`unknown_custody_group`）"
         "503":
           description: "本节点的账本读视图不可用或尚未就绪；请稍后重试"
-  "/v1/custody/{key}/deposits/{asset}/{version}/{id}":
-    get:
-      tags:
-        - Funds
-      summary: "按回执查询入金状态"
-      description: "按回执（资产、资产版本、`depositId`）查询一笔入金：账本侧状态及延迟原因（如有）、包含它的快照点和退款原因。链上详细状态（托管中 / 已退款 / 已入账）不由账本跟踪；`chain` 说明如何从 `DepositInbox.depositReceipt` 读取。入金按地址进行：受益人是回执的 `refundRecipient`，入账到其主账户；没有主账户时，首笔入账的入金会自动开立一个。"
-      operationId: v1_custody_deposit
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "托管组的 `custodyKeyHash`，0x 32 字节十六进制"
-        - name: asset
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`assetId`（十进制 `u32`）"
-        - name: version
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`assetVersion`（十进制 `u64`）"
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`depositId`（十进制 `u64`，从 1 开始）"
-      responses:
-        "200":
-          description: "入金状态"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  deposit:
-                    type: object
-                    properties:
-                      custodyKeyHash:
-                        type: string
-                      assetId:
-                        type: integer
-                      assetVersion:
-                        type: string
-                        description: "十进制字符串"
-                      depositId:
-                        type: string
-                        description: "十进制字符串"
-                      nextDepositId:
-                        type: string
-                        description: "十进制字符串"
-                      status:
-                        type: string
-                        enum:
-                          - awaiting
-                          - credited
-                          - rejected
-                          - refundPending
-                          - refunded
-                          - refundedBeforeProcessing
-                          - consumed
-                        description: "`awaiting`：尚未处理；`credited`：根尚未被接受；`rejected` / `refunded`：仍在队列中；`refundPending`：等待退款（含 `tellerRejected`）；`refundedBeforeProcessing`：处理前已退款；`consumed`：根已被接受（见 `chain`）"
-                      queuePosition:
-                        type: string
-                        description: "在账本处理队列中的位置（0 = 下一个）"
-                      refundRequested:
-                        type: boolean
-                      deferral:
-                        type: object
-                        description: "队首入金此刻是否会被延迟及原因：`wouldDefer` / `frozen` / `assetNotEnabled` / `consumptionBudgetFull` / `noAcceptedRoot` / `rootStale` / `unconfirmedHeadroomRaw`"
-                      accountId:
-                        type:
-                          - integer
-                          - "null"
-                        description: "回执解析到的账户：已入账的账户，被拒绝的回执则为受益人的主账户；没有时（或回执指定了账户号）为 `null`"
-                      amountRaw:
-                        type: string
-                      receiptHash:
-                        type: string
-                      refundRecipient:
-                        type: string
-                        description: "回执中受益人字段的原始名称；同 `beneficiary`"
-                      includedInCut:
-                        type:
-                          - string
-                          - "null"
-                        description: "包含该行的快照点序号（已切出但尚未被接受时）；否则为 `null`"
-                      confirmed:
-                        type: boolean
-                      reason:
-                        type: string
-                        enum:
-                          - userRequested
-                          - accountUnregistered
-                          - amountUnrepresentable
-                          - creditCapExceeded
-                          - liabilityCapExceeded
-                          - tellerRejected
-                          - unknown
-                      chain:
-                        type: object
-                        description: "在托管链上读取链上详细状态的方式（合约、调用、状态码）；网关不会替你读取"
-                      beneficiary:
-                        type: string
-                        description: "受益人地址，等于回执的 `refundRecipient`；被拒绝的入金退回该地址"
-                      creditedAccountId:
-                        type:
-                          - integer
-                          - "null"
-                        description: "`status` = `credited` 时的入账账户（含自动开立的主账户）；否则为 `null`"
-                      reasonDetail:
-                        type:
-                          - string
-                          - "null"
-                        enum:
-                          - accountOpeningUnavailable
-                          - explicitAccountUnsupported
-                          - firstDepositOverAccountCap
-                          - accountCapExceeded
-                          - null
-                        description: "细分 `reason`：`accountOpeningUnavailable` / `explicitAccountUnsupported`（`accountUnregistered`；无法判断时为 `null`，见 `deposits/by-tx/{tx}`）或 `firstDepositOverAccountCap` / `accountCapExceeded`（`tellerRejected`）"
-                      reasonMessage:
-                        type: string
-                        description: "`reason` 和 `reasonDetail` 的可读说明"
-                    required:
-                      - custodyKeyHash
-                      - assetId
-                      - assetVersion
-                      - depositId
-                      - status
-                      - chain
-                required:
-                  - deposit
-        "400":
-          description: "路径参数格式错误（`invalid_receipt`）"
-        "404":
-          description: "未知托管组或资产（`unknown_custody_asset`）"
-        "503":
-          description: "账本读视图未就绪；请重试"
   "/v1/custody/{key}/deposits/by-tx/{tx}":
     get:
       tags:
@@ -3547,157 +2665,6 @@ paths:
           description: "托管链 RPC 返回错误（`chain_rpc_failed`）"
         "503":
           description: "托管链未配置 RPC 端点（`chain_rpc_unavailable`），或账本读视图尚未就绪"
-  "/v1/accounts/{id}/tickets":
-    get:
-      tags:
-        - Account
-      summary: "账户提款票据"
-      description: "该账户的全部提款票据（金额、资产、托管组、取消计划）；`groups` 给出每个组的根接受进度。链上状态和预留时间需在托管链上从 `CustodyVault.ticketTerminal` 和 `TicketReserved` 读取（见每张票据的 `chain`）；最早在预留时间 + `ordinaryPaymentWaitMs` 之后付款。"
-      operationId: v1_account_tickets
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "账户 ID（十进制 `u32`）"
-      responses:
-        "200":
-          description: "票据列表"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  accountId:
-                    type: integer
-                  tickets:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        ticketId:
-                          type: string
-                        custodyKeyHash:
-                          type: string
-                        assetId:
-                          type: integer
-                        assetVersion:
-                          type: string
-                          description: "十进制字符串"
-                        debitRaw:
-                          type: string
-                        payloadHash:
-                          type: string
-                        cancelPlanned:
-                          type: boolean
-                        cancelId:
-                          type:
-                            - string
-                            - "null"
-                        ledgerStatus:
-                          type: string
-                        chain:
-                          type: object
-                  groups:
-                    type: array
-                    items:
-                      type: object
-                required:
-                  - accountId
-                  - tickets
-                  - groups
-        "400":
-          description: "路径参数格式错误（`invalid_account_id`）"
-        "404":
-          description: "未找到（`unknown_account`）"
-        "503":
-          description: "账本读视图尚未就绪；请稍后重试"
-  "/v1/accounts/{id}/funds-history":
-    get:
-      tags:
-        - Account
-      summary: "账户资金历史"
-      description: |-
-        账户的入金、退款和提款事件；分页同 `/v1/events`。
-
-        - 类型：`CashDepositCredited`、`DepositRefundPlanned`、`DepositRefundAccounted`、`CashWithdrawalReserved`、`CashWithdrawalCancelPlanned`、`CashWithdrawalAccounted`、`CashWithdrawalCancelled`、`EscapeClaimAccounted`。
-        - 退款计划带 `refund{status, reason}`；已预留的提款带 `ticket` 检查点进度，其中 `estimatedPayableAtMs` 为估计值（准确值为 `TicketReserved` 的区块时间）。
-      operationId: v1_account_funds_history
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "账户 ID（十进制）"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-            description: "事件 ID `<seq>-<sub>-<idx>`；与回补游标及 WebSocket 帧中的 `id` 相同"
-          description: "游标：上一页的 `next`"
-        - name: epoch
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "第一页返回的账本纪元；给出 `after` 时须与 `upper` 一同提供（账本已重置时返回 409 `history_epoch_mismatch`）"
-        - name: upper
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-          description: "第一页返回的固定上界；给出 `after` 时须与 `epoch` 一同提供，否则返回 400。超出本副本的完整历史：400 `GatewayHistoryIncomplete`，稍后重试"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 200
-          description: "每页条数"
-      responses:
-        "200":
-          description: "一页资金历史"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  accountId:
-                    type: integer
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        kind:
-                          type: string
-                        data:
-                          type: object
-                        ts: {}
-                        refund:
-                          type: object
-                        ticket:
-                          type: object
-                  groups:
-                    type: array
-                    items:
-                      type: object
-                required:
-                  - accountId
-                  - items
-        "400":
-          description: "路径或查询参数格式错误"
-        "404":
-          description: "找不到账户（`unknown_account`）"
-        "503":
-          description: "本节点账本状态尚不可用；请稍后重试"
   "/v1/custody/{key}/deposit-precheck":
     get:
       tags:
@@ -3861,17 +2828,8 @@ paths:
               schema:
                 type: object
                 required:
-                  - ledgerEpoch
                   - groups
                 properties:
-                  networkId:
-                    type: string
-                  genesisHash:
-                    type: string
-                  ledgerEpoch:
-                    type: string
-                  manifestHash:
-                    type: string
                   groups:
                     type: array
                     items:
@@ -4414,7 +3372,6 @@ components:
     Account:
       type: object
       required:
-        - epoch
         - asOfSeq
         - token
         - collateral
@@ -4724,9 +3681,6 @@ components:
           type: integer
           format: int64
           description: "Unix 毫秒"
-        epoch:
-          type: string
-          description: "风险视图所属的账本纪元；仅在节点重启 / 重置时变化"
         asOfSeq:
           type: integer
           format: uint64
@@ -4735,7 +3689,6 @@ components:
       type: object
       description: "每个风险组在同一水位点的永续盈亏，金额为十进制字符串，以该组保证金代币计价；`equity = netInflow + spotTransfer + totalPnl` 严格成立。现货成交和现货手续费计入 `spotTransfer`，不计入盈亏"
       required:
-        - epoch
         - asOfSeq
         - groups
       properties:
@@ -4748,9 +3701,6 @@ components:
         vault:
           type: integer
           description: "请求指定金库（`vault=<id>`）时出现，代替 `address` / `subaccount`"
-        epoch:
-          type: string
-          description: "账本纪元"
         asOfSeq:
           type: integer
           format: uint64
@@ -5879,8 +4829,6 @@ components:
         vault:
           type: integer
           description: "请求指定 `vault` 时出现，代替 `address` / `subaccount`"
-        epoch:
-          type: string
         upper:
           type: string
         entries:
@@ -5926,14 +4874,9 @@ components:
         - openInterest
         - openInterestCap
         - dex
-        - dexCode
         - fees
-        - tags
-        - priceSource
         - aggTicks
         - subticksPerTick
-        - tradingRulesVersion
-        - tickChangePending
       properties:
         symbol:
           type:
@@ -6106,20 +5049,11 @@ components:
               description: "十进制字符串"
         dex:
           type: integer
-          description: "市场所属的交易所（每个交易所都经过注册；不存在 0 号交易所）"
-        dexCode:
-          type: string
-          description: "该市场所属交易所的账本短名（即 `/v1/dexes` 中的 `code`）：有短名的交易所，其每个市场符号均为 `<dexCode>:BASE-QUOTE`。平台市场与其他市场一样带有平台交易所的短名。"
+          description: "市场所属交易所（DEX）的编号（每个交易所都已注册，没有 0 号交易所）"
         fees:
           type: object
-          description: "适用于无 builder 归属的订单。`rateSource`：`market` = 遗留费率，`default` = 平台默认，`tier` = 创世基础费率。账户费率见 `GET /v1/account`。部署者 / builder 费率：对其归属订单加收的附加费"
+          description: "该市场的吃单 / 挂单费率。你账户的费率见 `GET /v1/account`。"
           properties:
-            rateSource:
-              type: string
-              enum:
-                - market
-                - default
-                - tier
             takerRate:
               type: string
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
@@ -6128,64 +5062,6 @@ components:
               type: string
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
               description: "负数 = 返佣；平台默认（`rateSource=default`）或创世基础费率（`tier`）"
-            deployerRate:
-              type: string
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "十进制字符串"
-            deployerMakerRate:
-              type: string
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "向挂单方收取的部署者费率，十进制字符串"
-            builderRate:
-              type: string
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "十进制字符串。builder 模型开启后：各 builder 自身费率（未设置 = 0）的**上限**；开启前：对有归属的吃单成交收取的固定费率"
-            pendingDeployerRate:
-              type:
-                - string
-                - "null"
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "十进制字符串。待生效的吃单部署者费率，在 `pendingEffectiveAtMs`（上调后 7 天）生效。下调、以及市场在任何交易之前第一次设的费率立即生效；两项都不上调的变更会撤销它。`null` = 无"
-            pendingDeployerMakerRate:
-              type:
-                - string
-                - "null"
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "十进制字符串；`pendingDeployerRate` 的挂单部分；`null` = 无待生效变更"
-            pendingEffectiveAtMs:
-              type:
-                - integer
-                - "null"
-              format: int64
-              description: "`pendingDeployerRate` 生效的认证 Unix 毫秒时间；`null` = 无待生效变更"
-        platformLocked:
-          type: boolean
-          description: "理事会锁定该商户市场期间为 `true`：交易所所有者及其 API 钱包无法修改市场状态。归理事会所有的交易所恒为 `false`"
-        tags:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9-]{1,24}$"
-          maxItems: 8
-          description: "市场所属交易所的分类代码，按设置顺序排列；显示名称见 `GET /v1/dexes/{id}`。仅用于展示"
-        priceSource:
-          type:
-            - array
-            - "null"
-          items:
-            type: object
-            required:
-              - source
-              - symbol
-            properties:
-              source:
-                type: string
-                description: "价格来源名称（`coinbase`、`binance`、`kraken`、`okx`、`hyperliquid`、`hyperliquid-testnet`）"
-              symbol:
-                type: string
-                description: "该来源自己的代码，原样使用"
-          maxItems: 8
-          description: "绑定到该永续市场的价格来源；预言机价格取其中位数。`null` = 未绑定（由市场代码推导）；现货恒为 `null`"
         aggTicks:
           type:
             - array
@@ -6208,13 +5084,6 @@ components:
           minimum: 1
           maximum: 4294967295
           description: "以基础价格单位计的价格增量；`tickSize` = 本值 × 10^-`priceDecimals`"
-        tradingRulesVersion:
-          type: string
-          pattern: "^(0|[1-9][0-9]*)$"
-          description: "单调递增的交易规则版本号：变更进入待处理时 +1，结果确认时（含失败）再 +1。十进制字符串"
-        tickChangePending:
-          type: boolean
-          description: "为 `true` 时禁止新下单；撤单仍可用"
     MyVaultPosition:
       type: object
       properties:
@@ -6585,7 +5454,6 @@ components:
       required:
         - address
         - subaccount
-        - epoch
         - period
         - bucketMs
         - fromMs
@@ -6600,9 +5468,6 @@ components:
           type: string
         subaccount:
           type: integer
-        epoch:
-          type: string
-          description: "账本纪元；新纪元开始新的序列"
         period:
           type: string
           enum:
@@ -7025,10 +5890,8 @@ components:
         - totalShares
         - lpBalance
         - managerBalance
-        - lastCheckedEquity
         - hwm
         - equity
-        - unattributed
         - totalDeposits
         - pnl
         - managerPortionPpm
@@ -7123,10 +5986,6 @@ components:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
           description: "归属于经理类的余额，USDC"
-        lastCheckedEquity:
-          type: string
-          pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-          description: "上次账本同步时的权益，USDC"
         hwm:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
@@ -7135,10 +5994,6 @@ components:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
           description: "金库权益（主账户净保证金），USDC"
-        unattributed:
-          type: string
-          pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-          description: "`equity − lpBalance − managerBalance`（尚未同步到各类别的盈亏），USDC"
         totalDeposits:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
@@ -7553,24 +6408,7 @@ components:
         - executionKnown
         - nonceConsumed
         - duplicate
-        - networkId
-        - genesisHash
-        - manifestHash
-        - ledgerEpoch
       properties:
-        networkId:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        genesisHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        manifestHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        ledgerEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "账本纪元；十进制字符串"
         status:
           type: string
           enum:
@@ -7613,36 +6451,12 @@ components:
     RequestFact:
       type: object
       required:
-        - networkId
-        - genesisHash
-        - manifestHash
-        - ledgerEpoch
         - requestId
         - status
         - executionKnown
         - nonceConsumed
-        - historyComplete
-        - certification
-        - anchor
-        - position
         - digest
-        - inputSeq
-        - hostLogIndex
-        - inputPrefix
       properties:
-        networkId:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        genesisHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        manifestHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        ledgerEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "账本纪元；十进制字符串"
         requestId:
           type: string
           pattern: "^0x[0-9a-f]{64}$"
@@ -7662,55 +6476,6 @@ components:
         nonceConsumed:
           type: boolean
           nullable: true
-        historyComplete:
-          type: boolean
-          enum:
-            - false
-        certification:
-          nullable: true
-          enum:
-            - null
-          type: object
-        anchor:
-          nullable: true
-          enum:
-            - null
-          type: object
-        position:
-          type: object
-          nullable: true
-          required:
-            - inputSeq
-            - hostLogIndex
-            - commandOrdinal
-            - relayOrdinal
-          properties:
-            inputSeq:
-              type: string
-              pattern: "^[0-9]+$"
-              description: "十进制字符串"
-            hostLogIndex:
-              type: string
-              pattern: "^[0-9]+$"
-              description: "十进制字符串"
-            commandOrdinal:
-              type: integer
-              minimum: 0
-            relayOrdinal:
-              type: integer
-              nullable: true
-              minimum: 0
-        inputSeq:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "十进制字符串"
-        hostLogIndex:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "十进制字符串"
-        inputPrefix:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
         source:
           type: string
           enum:
@@ -7738,34 +6503,6 @@ components:
           type: integer
           minimum: 0
           maximum: 255
-        resultDigest:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        accountId:
-          type: integer
-          minimum: 0
-        policyId:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "策略 ID；十进制字符串"
-        policyHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        certificateHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        setEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "十进制字符串"
-        globalSequence:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "十进制字符串"
-        timestampMs:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "Unix 毫秒；十进制字符串"
         error:
           type: string
     CommandError:
@@ -8406,152 +7143,11 @@ components:
     MarketLedger:
       type: object
       description: "市场的账本规格，与顶层快照字段取自同一个账本快照"
-      required:
-        - signingMarketId
-        - dex
-        - baseSymbol
-        - marketSpecVersion
-        - assetVersion
-        - priceDecimals
-        - sizeDecimals
-        - quotePerTickLot
-        - admission
-        - admissionVersion
-        - oracleStale
-        - oraclePriceAtMs
-        - oraclePolicy
-        - platformLock
-        - accountOwned
-      properties:
-        signingMarketId:
-          type: integer
-          description: "市场 ID，与目录行的 `signingMarketId` 相同"
-        dex:
-          type: integer
-        baseSymbol:
-          type:
-            - string
-            - "null"
-          description: "永续名称（1-16 位大写字母和数字）；现货和 v1 规格为 `null`"
-        marketSpecVersion:
-          type: string
-        assetVersion:
-          type: string
-        priceDecimals:
-          type: integer
-        sizeDecimals:
-          type: integer
-        quotePerTickLot:
-          type: string
-        admission:
-          type: integer
-        admissionVersion:
-          type: string
-        oracleStale:
-          type: boolean
-          description: "预言机过期标记；上架时没有启用测试策略的永续，在第一个生效轮次前一直过期"
-        oraclePriceAtMs:
-          type: string
-          description: "最近一次生效预言机价格的区块时间，毫秒；0 = 从未有过"
-        oraclePolicy:
-          type:
-            - object
-            - "null"
-          description: "当前预言机策略；现货和无策略的市场为 `null`"
-          required:
-            - version
-            - status
-            - algorithmId
-            - algorithmVersion
-            - feeds
-          properties:
-            version:
-              type: string
-              description: "策略版本；更新预言机策略时作为 `expectedVersion` 传入"
-            status:
-              type: integer
-              description: "0 草稿 / 1 启用 / 2 停用"
-            algorithmId:
-              type: integer
-            algorithmVersion:
-              type: integer
-            feeds:
-              type: array
-              items:
-                type: object
-                required:
-                  - feedId
-                  - feedVersion
-                  - setId
-                  - setEpoch
-                  - feedOwner
-                  - feedDex
-                properties:
-                  feedId:
-                    type: string
-                  feedVersion:
-                    type: string
-                  setId:
-                    type: string
-                  setEpoch:
-                    type: string
-                  feedOwner:
-                    type:
-                      - string
-                      - "null"
-                    enum:
-                      - Protocol
-                      - Dex
-                      - null
-                    description: "喂价源的所有者；未配置时为 `null`"
-                  feedDex:
-                    type:
-                      - integer
-                      - "null"
-                    description: "`feedOwner` = `Dex` 时的所属交易所"
-        platformLock:
-          type:
-            - string
-            - "null"
-          enum:
-            - paused
-            - cancel_only
-            - reduce_only
-            - halted
-            - null
-          description: "该市场上理事会平台锁的档位；未上锁为 `null`"
-        accountOwned:
-          type: boolean
-          description: "该市场所属交易所的所有者是账户（而非理事会）"
+      properties: {}
     LedgerSnapshot:
       type: object
       description: "账本读取所依据的已发布账本快照"
-      required:
-        - networkId
-        - genesisHash
-        - ledgerEpoch
-        - manifestHash
-        - inputSeq
-        - hostLogIndex
-      properties:
-        networkId:
-          type: string
-          description: "网络 ID（`bytes32`，0x 开头的十六进制）"
-        genesisHash:
-          type: string
-          description: "创世哈希（`bytes32`，0x 开头的十六进制）"
-        ledgerEpoch:
-          type: string
-          description: "账本纪元，十进制字符串"
-        manifestHash:
-          type: string
-          description: "Manifest 哈希（`bytes32`，0x 开头的十六进制）"
-        inputSeq:
-          type: string
-          description: "该快照点的账本输入序号，十进制字符串"
-        hostLogIndex:
-          type: string
-          description: "该快照点的宿主日志下标，十进制字符串"
+      properties: {}
     DexLedgerRow:
       allOf:
         - "$ref": "#/components/schemas/DexRegistration"
@@ -8579,24 +7175,7 @@ components:
         - duplicate
         - businessRejected
         - events
-        - networkId
-        - genesisHash
-        - manifestHash
-        - ledgerEpoch
       properties:
-        networkId:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        genesisHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        manifestHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        ledgerEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "账本纪元；十进制字符串"
         status:
           type: string
           enum:

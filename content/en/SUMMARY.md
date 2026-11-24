@@ -30,11 +30,4 @@
   - [Commands overview](api/trading/commands.md)
   - [Orders](api/trading/orders.md)
   - [Margin, funds and vaults](api/trading/account-funds.md)
-  - [Merchants and builders](api/trading/merchants.md)
-  - [Grants, registration and governance](api/trading/governance.md)
-
-## Advanced API
-
-- [Ledger accounts and grants](api/advanced/ledger-accounts.md)
-- [Self-custody and withdrawal tracking](api/advanced/self-custody.md)
-- [Event backfill and async results](api/advanced/backfill.md)
+  - [API wallets](api/trading/governance.md)

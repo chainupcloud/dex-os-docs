@@ -825,7 +825,7 @@ paths:
       description: |-
         This account's order events, one per row: accepted / fill / canceled / expired, plus placed / triggered / rejected / autocanceled for conditional orders.
 
-        - Paged with the same cursor as `/v1/events` (`after` / `upper` / `hasMore`); `order=desc` = newest first.
+        - Paged with `after` / `upper` / `hasMore`; `order=desc` = newest first.
         - Fold by `orderId` for one row per order.
         - A TWAP's `startMs` is the ledger time its parent order executed (the row's `ts`).
       operationId: v1_order_history
@@ -1134,128 +1134,6 @@ paths:
                       "$ref": "#/components/schemas/Subaccount"
         "400":
           "$ref": "#/components/responses/BadRequest"
-  "/v1/account/by-address/{address}":
-    get:
-      tags:
-        - Account
-      summary: Accounts of an address
-      description: |-
-        Accounts linked to this address: `main` (what `?address=` reads, with subaccounts), `legacyExtra` (extra single-signer accounts, not reachable via `?address=`) and `multisig` (multi-member policies including it; threshold k of n).
-        - `legacyExtra` + `multisig` page together by ascending policy id (`next` → `after`); `main` repeats on every page.
-        - No account: 200 with `main: null` and empty lists.
-        - Live pages, not a snapshot; restart if the ledger changes.
-      operationId: v1_account_by_address
-      parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^0x[0-9a-fA-F]{40}$"
-          description: The address to look up
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-            default: 50
-          description: "Rows of `legacyExtra` + `multisig` per page"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "Policy id to continue after (the previous page's `next`)"
-        - "$ref": "#/components/parameters/MinSeq"
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  address:
-                    type: string
-                    pattern: "^0x[0-9a-f]{40}$"
-                    description: EVM address (lower-case in responses, case-insensitive in requests)
-                  main:
-                    type:
-                      - object
-                      - "null"
-                    properties:
-                      signingAccountId:
-                        type: integer
-                        description: "**Signing only.** Account number a signed command uses as `inner_account` (subaccounts are signed by the main policy)"
-                      policyId:
-                        type: string
-                        description: "Account policy id, decimal string; used by `/v1/nonces?principal=account&policy=` and `/v1/grants?policy=`"
-                      policyEpoch:
-                        type: string
-                        description: "Current signing-policy epoch, decimal string; increments on every rekey"
-                      subaccounts:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            subaccount:
-                              type: integer
-                              minimum: 1
-                              description: "Subaccount index (`?address=&subaccount=N`)"
-                            signingAccountId:
-                              type: integer
-                              description: "**Signing only.** Account number a signed command uses as `inner_account` (subaccounts are signed by the main policy)"
-                            policyEpoch:
-                              type: string
-                              description: "Current signing-policy epoch, decimal string; increments on every rekey"
-                  legacyExtra:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        signingAccountId:
-                          type: integer
-                          description: "**Signing only.** Account number a signed command uses as `inner_account` (subaccounts are signed by the main policy)"
-                        policyId:
-                          type: string
-                          description: "Account policy id, decimal string; used by `/v1/nonces?principal=account&policy=` and `/v1/grants?policy=`"
-                        policyEpoch:
-                          type: string
-                          description: "Current signing-policy epoch, decimal string; increments on every rekey"
-                  multisig:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        signingAccountId:
-                          type: integer
-                          description: "**Signing only.** Account number a signed command uses as `inner_account` (subaccounts are signed by the main policy)"
-                        policyId:
-                          type: string
-                          description: "Account policy id, decimal string; used by `/v1/nonces?principal=account&policy=` and `/v1/grants?policy=`"
-                        policyEpoch:
-                          type: string
-                          description: "Current signing-policy epoch, decimal string; increments on every rekey"
-                        threshold:
-                          type: integer
-                          description: "k: signatures needed"
-                        memberCount:
-                          type: integer
-                          description: "n: policy members"
-                  next:
-                    type:
-                      - string
-                      - "null"
-                    description: "Pass as `after` for the next page; null on the last page"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "412":
-          "$ref": "#/components/responses/ReplicaBehind"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
   /v1/account/vaults:
     get:
       tags:
@@ -1377,243 +1255,12 @@ paths:
                       "$ref": "#/components/schemas/AgentGrant"
         "400":
           "$ref": "#/components/responses/BadRequest"
-  /v1/dexes:
-    get:
-      tags:
-        - Market data
-      summary: Builder dex list
-      description: "Every dex, by id, paged with `after` / `limit` → `next`: owner, collateral token, insurance account, surcharge, margin table, markets and short `code` (its market symbol prefix). `markets` = perpetuals only; `spotMarkets` = spot pairs. Rows add the ledger registration (`DexLedgerRow`: owner, config, private feed quota, `marketCount`, `authority`); the ledger snapshot is at the top."
-      operationId: v1_dexes
-      parameters:
-        - name: ownerAccount
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Current owner account id (decimal); omit to list all"
-        - name: shortName
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[A-Z][A-Z0-9]{1,7}$"
-          description: "Exact short name; the list then has 0 or 1 entries. A name the ledger would reject (lower case, wrong length, reserved `MAIN`) returns 400 `invalid_short_name`"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "1..1000, default 100"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Start after this dex id (decimal); omit to start from the first. Next page: the response's `next`"
-      responses:
-        "200":
-          description: "One published ledger snapshot; u64 values as decimal strings"
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/LedgerCut"
-                  - type: object
-                    required:
-                      - ownerAccount
-                      - dexes
-                      - next
-                    properties:
-                      ownerAccount:
-                        type:
-                          - integer
-                          - "null"
-                        description: The ownerAccount filter, null when absent
-                      dexes:
-                        type: array
-                        items:
-                          allOf:
-                            - "$ref": "#/components/schemas/Dex"
-                            - "$ref": "#/components/schemas/DexLedgerRow"
-                      next:
-                        type:
-                          - integer
-                          - "null"
-                        description: "Pass as `after` for the next page; null on the last page"
-        "400":
-          description: "Malformed query parameter: `invalid_owner_account` / `invalid_short_name` / `invalid_limit` / `invalid_after` / `unsupported_parameter`"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  "/v1/dexes/{id}":
-    get:
-      tags:
-        - Market data
-      summary: Single dex
-      description: "One `/v1/dexes` row (`markets` = perps, `spotMarkets` = spot) plus `categories`: the dex's own categories and the platform templates its markets' `tags` use, ordered by `sort` then code. These are the display names for `/v1/markets[].tags`. May lag up to 2 s."
-      operationId: v1_dex
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - "$ref": "#/components/schemas/Dex"
-                  - type: object
-                    required:
-                      - dex
-                      - categories
-                    properties:
-                      dex:
-                        type: integer
-                      categories:
-                        type: array
-                        items:
-                          "$ref": "#/components/schemas/CategoryView"
-                  - "$ref": "#/components/schemas/DexLedgerRow"
-                  - "$ref": "#/components/schemas/LedgerCut"
-        "404":
-          "$ref": "#/components/responses/NotFound"
-        "503":
-          "$ref": "#/components/responses/Unavailable"
-  /v1/events:
-    get:
-      tags:
-        - Account
-      summary: Event backfill
-      description: |-
-        Raw execution-layer events, same shape as the WebSocket `events` channel. Ascending only (`order=desc` is 400).
-
-        - With `address`: that account's events, dense pages; `symbol` narrows to one market.
-        - Without `address`: the whole log; `symbol` filters within each page, so pages may be sparse or empty. Follow `next` until `hasMore=false`.
-        - `OrderAttributed` / `FillAttributed` are not published here or on WebSocket.
-      operationId: v1_events
-      parameters:
-        - name: symbol
-          in: query
-          required: false
-          schema:
-            type: string
-            description: "Market symbol, e.g. `BTC-USD` (perp) or `BTC-USDC` (spot); a merchant dex market is `<code>:BTC-USD` (`:` may be sent as `%3A`); case-insensitive"
-            examples:
-              - BTC-USD
-          description: ""
-        - "$ref": "#/components/parameters/MarketKind"
-        - name: address
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^0x[0-9a-f]{40}$"
-            description: "EVM address; case-insensitive, lower-case in responses"
-          description: ""
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-            description: "Event id `<seq>-<sub>-<idx>`; same as the backfill cursor and the `id` in WebSocket frames"
-          description: "Cursor: `next` from the previous page"
-        - name: epoch
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Ledger epoch from the first page; required with `upper` when `after` is set (409 `history_epoch_mismatch` if the ledger was reset)"
-        - name: upper
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-          description: "Fixed upper bound from the first page; required with `epoch` when `after` is set, else 400. Past this replica's complete history: 400 `GatewayHistoryIncomplete`, retry later"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 200
-          description: Page size
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/EventsPage"
-        "400":
-          "$ref": "#/components/responses/BadRequest"
-        "404":
-          "$ref": "#/components/responses/NotFound"
-  /v1/fees:
-    get:
-      tags:
-        - Market data
-      summary: Fee schedule
-      description: "The standard liquidity-tier table; account rates are in `GET /v1/account`, market overrides in `GET /v1/markets`. A dex deployer picks a tier from `dexSelectableTiers` in `RegisterDexAsset`; a tier the ledger does not allow fails with `UnknownLiquidityTier`."
-      operationId: v1_fees
-      parameters: []
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  liquidityTiers:
-                    type: object
-                    properties:
-                      tiers:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            tier:
-                              type: integer
-                            initialMarginPpm:
-                              type: integer
-                            maintenanceFractionPpm:
-                              type: integer
-                              description: "MMR = IMR × this / 1e6"
-                            impactNotionalQuote:
-                              type: string
-                            oiLowerCapQuote:
-                              type: string
-                              description: "\"0\" = OIMF off"
-                            oiUpperCapQuote:
-                              type: string
-                            maxLeverage:
-                              type: integer
-                              description: "`1e6 / initialMarginPpm`, display only"
-                            dexSelectable:
-                              type: boolean
-                              description: "Offered to a deployer in `RegisterDexAsset`; a tier with the same parameters as `defaultTier` is offered only as `defaultTier`"
-                      defaultTier:
-                        type: integer
-                        description: "7 = `IML_5x`; also used when `RegisterDexAsset` names none"
-                      dexSelectableTiers:
-                        type: array
-                        items:
-                          type: integer
-                        description: "Tiers offered to a deployer, ascending; no two share the same parameters"
-                  note:
-                    type: string
   /v1/markets:
     get:
       tags:
         - Market data
       summary: Market table
-      description: "Every ledger market, by `signingMarketId`; `symbol` is null until the market has a catalog name. Prices and sizes are exact decimal strings scaled by `priceDecimals` / `sizeDecimals`. Rows add the ledger spec (`MarketLedger`: spec and asset versions, admission, oracle state and policy); the ledger snapshot is at the top. Markets used per dex: `marketCount` of `/v1/dexes`."
+      description: "Every market, by `signingMarketId` (the market id in signed commands); `symbol` is null until the market has a name. Prices and sizes are exact decimal strings scaled by `priceDecimals` / `sizeDecimals`."
       operationId: v1_markets
       parameters:
         - "$ref": "#/components/parameters/MinSeq"
@@ -2110,7 +1757,7 @@ paths:
           is `true`, `outcome` / `events` are `null`: keep polling. Only the command completed: a targeted governance
           proposal may not be executed, a withdrawal may not be final.
         - `AuthorizationRejected` (200): sequenced but failed authorization; nonce not consumed; reason in
-          `stableError` / `errorCode`, log position in `position`. Only within the node's recent-results window, then
+          `stableError` / `errorCode`. Only within the node's recent-results window, then
           `Unknown`.
         - `Unknown` (404): no record on this node. **Not** proof it never executed; `nonceConsumed` is `null`.
         - `Conflict` (409): the ledger holds a different signed version than your `digest` (returned); not your success.
@@ -2305,7 +1952,6 @@ paths:
         - `managerSubaccount` / `creatorSubaccount`: subaccount index of the manager's / creator's account under its owner wallet; `managerSubaccount` is null while unclaimed.
         - Decide management rights by `authorizedManager` (confirmed by the ledger), not `manager` (funds side; may take effect earlier).
         - `confirmedTradingHalt`: last confirmed trading halt; `pendingClaim`: pending manager claim.
-        - Final state of an async vault task: `/v1/vaults/{id}/transitions/{source}/{ordinal}`.
       operationId: v1_vaults
       parameters:
         - name: dex
@@ -2328,7 +1974,7 @@ paths:
       tags:
         - Vaults
       summary: Vault details
-      description: "One community vault; fields match `/vaults*`. Adds `managerSubaccount` / `creatorSubaccount` (subaccount index under the owner wallet, as in `?subaccount=`; `managerSubaccount` is null while unclaimed), `authorizedManager`, `confirmedTradingHalt` and `pendingClaim`; `manager` stays the funds-side field. Final state of async vault tasks: `/v1/vaults/{id}/transitions/{source}/{ordinal}`."
+      description: "One community vault; fields match `/vaults*`. Adds `managerSubaccount` / `creatorSubaccount` (subaccount index under the owner wallet, as in `?subaccount=`; `managerSubaccount` is null while unclaimed), `authorizedManager`, `confirmedTradingHalt` and `pendingClaim`; `manager` stays the funds-side field."
       operationId: v1_vault
       parameters:
         - name: id
@@ -2343,28 +1989,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/VaultDetail"
-        "404":
-          "$ref": "#/components/responses/NotFound"
-  "/v1/vaults/{id}/depositors":
-    get:
-      tags:
-        - Vaults
-      summary: Depositors
-      description: "Depositors of a community vault; fields as in `/vaults*`."
-      operationId: v1_vault_depositors
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/VaultDepositors"
         "404":
           "$ref": "#/components/responses/NotFound"
   "/v1/vaults/{id}/nav":
@@ -2400,121 +2024,6 @@ paths:
       responses:
         "101":
           description: Switching Protocols
-  "/v1/vaults/{id}/transitions/{source}/{ordinal}":
-    get:
-      tags:
-        - Vaults
-      summary: Get vault async task status
-      operationId: v1_vault_transition
-      description: |-
-        Status of a vault claim or deposit task, by the original request's log sequence (`source`) and logical command ordinal (`ordinal`): `pending`, or final `succeeded` / `rejected`.
-
-        - A `wait=fold` receipt for the payment request does not mean the mint, refund or authorization is final; check here.
-        - 503: history unavailable or read model not yet at `source`; retry later.
-        - 404: read model past `source` but no record of the task; not a business failure.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 65535
-          description: Vault id
-        - name: source
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-            description: Log sequence number, decimal string
-          description: Full log sequence of the original request (not of the confirmation)
-        - name: ordinal
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 65535
-          description: Logical command ordinal within the original request (not the physical record sub-index)
-      responses:
-        "200":
-          description: Pending state or durable final state
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    required:
-                      - status
-                      - sourceLogIdx
-                      - sourceOrdinal
-                      - slot
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - pending
-                      sourceLogIdx:
-                        type: string
-                        pattern: "^[0-9]+$"
-                        description: Log sequence number, decimal string
-                      sourceOrdinal:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-                      slot:
-                        type: integer
-                        minimum: 0
-                        maximum: 4095
-                  - type: object
-                    required:
-                      - status
-                      - sourceLogIdx
-                      - sourceOrdinal
-                      - slot
-                      - errorCode
-                      - confirmationSeq
-                      - confirmationSub
-                    properties:
-                      status:
-                        type: string
-                        enum:
-                          - succeeded
-                          - rejected
-                      sourceLogIdx:
-                        type: string
-                        pattern: "^[0-9]+$"
-                        description: Log sequence number, decimal string
-                      sourceOrdinal:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-                      slot:
-                        type: integer
-                        minimum: 0
-                        maximum: 4095
-                      errorCode:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-                        description: "0 on success; otherwise the original command's numeric ledger error code"
-                      confirmationSeq:
-                        type: string
-                        pattern: "^[0-9]+$"
-                        description: Log sequence number, decimal string
-                      confirmationSub:
-                        type: integer
-                        minimum: 0
-                        maximum: 65535
-        "400":
-          description: Invalid path parameter
-        "404":
-          description: "Read model past `source` but history has no record of the task; does not mean `rejected`"
-        "500":
-          description: Corrupt confirmation record in execution history
-        "503":
-          description: "Read model or history unavailable, or read model not yet at `source`; retry later"
   /v1/account/subaccounts/name:
     post:
       tags:
@@ -2648,7 +2157,7 @@ paths:
                           minimum: 0
                         - type: string
                           pattern: "^[0-9]+$"
-                      description: "Signed account policy epoch (`policyEpoch` of `GET /v1/accounts/{id}`); if not current, 409 `GatewayConflict` with `details.policyEpoch` = current"
+                      description: "Signed account policy epoch; if not current, 409 `GatewayConflict` with `details.policyEpoch` = current"
                     signatures:
                       type: array
                       minItems: 1
@@ -2815,149 +2324,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CommandError"
-  "/v1/custody/{key}":
-    get:
-      tags:
-        - Funds
-      summary: Custody group
-      description: "A custody group's ledger state: catalog version, `mode` (`normal` / `escapePending` / `frozen`), next root sequence and last cut time, cut but not yet accepted roots that include the group, the latest accepted root, escape and freeze state, chain observations, and per-asset deposit / refund / payout counts with cumulative hashes. Also `registration` (hex), `registrationHash` (= the registering operation's `configHash`) and `firstCheckpointSeq` (1 for genesis groups)."
-      operationId: v1_custody_group
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`custodyKeyHash` of the group, 0x 32-byte hex"
-      responses:
-        "200":
-          description: Ledger snapshot view
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "Malformed path parameter (`invalid_custody_key_hash`)"
-        "404":
-          description: "Unknown custody group (`unknown_custody_group`)"
-        "503":
-          description: "Ledger view not ready; retry"
-  /v1/accounts:
-    get:
-      tags:
-        - Account
-      summary: Accounts by policy member
-      description: "Accounts whose policy members include this address, by ascending policy id and paged with `after` / `limit` → `next`: account id, policy id and epoch, threshold, members, exit address. Only `soleSigner` accounts (sole member, threshold 1) are attributed to the address via `?address=`, since anyone can add your address to a multi-member policy."
-      operationId: v1_accounts_of_member
-      parameters:
-        - name: member
-          in: query
-          required: true
-          schema:
-            type: string
-          description: "Member address (0x + 40 hex digits)"
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Policy id (decimal) from `next`; the page starts after it"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "1..1000, default 100"
-      responses:
-        "200":
-          description: Published ledger state
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - member
-                  - accounts
-                  - next
-                properties:
-                  member:
-                    type: string
-                  accounts:
-                    type: array
-                    items:
-                      type: object
-                  next:
-                    type:
-                      - string
-                      - "null"
-                    description: "Pass as `after` for the next page; null on the last page"
-        "400":
-          description: "Malformed query parameter: `invalid_member_address` / `invalid_after` / `invalid_limit`"
-        "503":
-          description: "Ledger read view unavailable or not ready on this node; retry later"
-  "/v1/accounts/{id}":
-    get:
-      tags:
-        - Account
-      summary: Ledger account by id
-      description: |-
-        Exit policy of an account: policy id and epoch, exit address, threshold and members.
-
-        - `id` may be a main or derived account (subaccount / merchant bucket); `account` is always the root, `queried` describes `id`, `derived` lists derived accounts and owned dex insurance funds (`dexFund`).
-        - Ids with no account root (insurance funds, platform accounts, unassigned) return 404.
-        - `builderApprovals`: the root account's builder fee approvals `[{builder, maxFeePpm}]`, ascending by builder.
-      operationId: v1_account_by_id
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Account id (decimal u32)
-      responses:
-        "200":
-          description: Published ledger state (read-only)
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "Malformed path parameter (`invalid_account_id`)"
-        "404":
-          description: "Not found (`unknown_account`)"
-        "503":
-          description: "Ledger view not ready on this node; retry later"
-  "/v1/accounts/{id}/tickets/{ticket}":
-    get:
-      tags:
-        - Account
-      summary: Withdrawal ticket
-      description: "Whether the ledger still holds this withdrawal ticket for the account; `ticket` is null once it is cancelled or its payment settled."
-      operationId: v1_account_ticket
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Account id (decimal u32)
-        - name: ticket
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Ticket id, 0x 32-byte hex
-      responses:
-        "200":
-          description: Ledger snapshot view
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: Malformed path parameter
-        "503":
-          description: "Ledger view not ready; retry"
   /v1/grants:
     get:
       tags:
@@ -2989,106 +2355,6 @@ paths:
           description: "Policy not found (`unknown_principal`)"
         "503":
           description: "Ledger view not ready; retry later"
-  /v1/nonces:
-    get:
-      tags:
-        - Account
-      summary: Nonce window
-      description: "Nonce window of one lane in the principal's current epoch: `floor`, highest used `high` (null if none) and suggested `next`. `agent` / `service` principals must pass `grant`; `principal=council` returns the Council's `management` lane and takes no principal id or grant. With `nonce`, `consumed` says whether that nonce is used: true, false, or null below `floor` (no verdict)."
-      operationId: v1_nonces
-      parameters:
-        - name: principal
-          in: query
-          required: true
-          schema:
-            type: string
-            enum:
-              - account
-              - agent
-              - service
-              - council
-          description: account / agent / service / council
-        - name: policy
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Policy id (for `account` / `agent`)"
-        - name: service
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Service id (for `service`)"
-        - name: lane
-          in: query
-          required: true
-          schema:
-            type: string
-          description: trade / funds / management
-        - name: grant
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Grant id (for `agent` / `service`)"
-        - name: grantEpoch
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Grant epoch (for `agent` / `service`)"
-        - name: nonce
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+$"
-          description: "Optional u64 nonce to look up; adds `consumed` (`invalid_nonce` if malformed)"
-      responses:
-        "200":
-          description: "Ledger snapshot view; u64 values as decimal strings"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: Malformed query parameter
-        "404":
-          description: Principal not found
-        "503":
-          description: "Ledger state not available on this node yet; retry later"
-  "/v1/accounts/{id}/escape-preview":
-    get:
-      tags:
-        - Account
-      summary: Escape leaf preview
-      description: |-
-        Estimates the account's escape leaf per asset from the current ledger view: `own`, `inTransit` (cash in transit, e.g. withdrawals held in custody), `vaults[]` (share value passed through at the frozen valuation), `vaultAmount`, `ledgerTotal`, `claimable` / `withdrawReserved` / `paidObserved` (raw units, rounded down).
-
-        - **Estimate only**: exact values come from the frozen root at escape.
-        - 404 `vault_account_has_no_leaf` for vault accounts; `unknown_account` for unknown or platform accounts.
-      operationId: v1_account_escape_preview
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Account id (decimal u32)
-      responses:
-        "200":
-          description: "Consistent ledger snapshot view; u64 values and amounts as decimal strings"
-          content:
-            application/json:
-              schema:
-                type: object
-        "400":
-          description: "`id` not decimal (`invalid_account_id`)"
-        "404":
-          description: "`unknown_account` (unknown or platform account) or `vault_account_has_no_leaf` (vault account)"
-        "503":
-          description: "Read view not ready, or the leaf is not computable on it (`escape_preview_unavailable`); retry later"
   /v1/custody:
     get:
       tags:
@@ -3109,8 +2375,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  manifestHash:
-                    type: string
                   groups:
                     type: array
                     items:
@@ -3222,7 +2486,6 @@ paths:
                   groupCatalogVersion:
                     type: string
                 required:
-                  - manifestHash
                   - groups
         "400":
           description: Malformed request
@@ -3230,150 +2493,6 @@ paths:
           description: "Not found (`unknown_custody_group`)"
         "503":
           description: "Ledger read view unavailable or not ready on this node; retry later"
-  "/v1/custody/{key}/deposits/{asset}/{version}/{id}":
-    get:
-      tags:
-        - Funds
-      summary: Deposit status by receipt
-      description: "Status of one deposit by receipt (asset, asset version, `depositId`): ledger status and any deferral reason, the containing cut, and the refund reason. The on-chain detail (escrowed / refunded / credited) is not tracked; `chain` says how to read it from `DepositInbox.depositReceipt`. Deposits are by address: the beneficiary is the receipt's `refundRecipient`, credited to its main account, which the first credited deposit opens if missing."
-      operationId: v1_custody_deposit
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`custodyKeyHash` of the group, 0x 32-byte hex"
-        - name: asset
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`assetId` (decimal u32)"
-        - name: version
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`assetVersion` (decimal u64)"
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: "`depositId` (decimal u64, from 1)"
-      responses:
-        "200":
-          description: Deposit status
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  deposit:
-                    type: object
-                    properties:
-                      custodyKeyHash:
-                        type: string
-                      assetId:
-                        type: integer
-                      assetVersion:
-                        type: string
-                        description: Decimal string
-                      depositId:
-                        type: string
-                        description: Decimal string
-                      nextDepositId:
-                        type: string
-                        description: Decimal string
-                      status:
-                        type: string
-                        enum:
-                          - awaiting
-                          - credited
-                          - rejected
-                          - refundPending
-                          - refunded
-                          - refundedBeforeProcessing
-                          - consumed
-                        description: "`awaiting`: unprocessed; `credited`: root not yet accepted; `rejected` / `refunded`: still queued; `refundPending`: refund due (incl. `tellerRejected`); `refundedBeforeProcessing`; `consumed`: root accepted (see `chain`)"
-                      queuePosition:
-                        type: string
-                        description: "Position in the ledger queue (0 = next)"
-                      refundRequested:
-                        type: boolean
-                      deferral:
-                        type: object
-                        description: "Whether the queue-head deposit would be deferred now, and why: `wouldDefer` / `frozen` / `assetNotEnabled` / `consumptionBudgetFull` / `noAcceptedRoot` / `rootStale` / `unconfirmedHeadroomRaw`"
-                      accountId:
-                        type:
-                          - integer
-                          - "null"
-                        description: "Account the receipt resolves to: the credited account, or for a refused receipt the beneficiary's main account; null if none (or the receipt names an account number)"
-                      amountRaw:
-                        type: string
-                      receiptHash:
-                        type: string
-                      refundRecipient:
-                        type: string
-                        description: "Original receipt field for the beneficiary; same as `beneficiary`"
-                      includedInCut:
-                        type:
-                          - string
-                          - "null"
-                        description: "Sequence of the cut containing this row while it is taken but not yet accepted; else null"
-                      confirmed:
-                        type: boolean
-                      reason:
-                        type: string
-                        enum:
-                          - userRequested
-                          - accountUnregistered
-                          - amountUnrepresentable
-                          - creditCapExceeded
-                          - liabilityCapExceeded
-                          - tellerRejected
-                          - unknown
-                      chain:
-                        type: object
-                        description: "Where to read the on-chain detail status (contract, call, status codes) on the custody chain; the gateway does not read it"
-                      beneficiary:
-                        type: string
-                        description: "Beneficiary address, equal to the receipt's `refundRecipient`; refused deposits are refunded to it"
-                      creditedAccountId:
-                        type:
-                          - integer
-                          - "null"
-                        description: "Credited account when `status` = `credited` (incl. an auto-opened main account); else null"
-                      reasonDetail:
-                        type:
-                          - string
-                          - "null"
-                        enum:
-                          - accountOpeningUnavailable
-                          - explicitAccountUnsupported
-                          - firstDepositOverAccountCap
-                          - accountCapExceeded
-                          - null
-                        description: "Refines `reason`: `accountOpeningUnavailable` / `explicitAccountUnsupported` (`accountUnregistered`; null if unclear, see `deposits/by-tx/{tx}`) or `firstDepositOverAccountCap` / `accountCapExceeded` (`tellerRejected`)"
-                      reasonMessage:
-                        type: string
-                        description: "Readable explanation of `reason` and `reasonDetail`"
-                    required:
-                      - custodyKeyHash
-                      - assetId
-                      - assetVersion
-                      - depositId
-                      - status
-                      - chain
-                required:
-                  - deposit
-        "400":
-          description: "Malformed path parameter (`invalid_receipt`)"
-        "404":
-          description: "Unknown custody group or asset (`unknown_custody_asset`)"
-        "503":
-          description: "Ledger view not ready; retry"
   "/v1/custody/{key}/deposits/by-tx/{tx}":
     get:
       tags:
@@ -3551,157 +2670,6 @@ paths:
           description: "Custody-chain RPC error (`chain_rpc_failed`)"
         "503":
           description: "No RPC endpoint for the custody chain (`chain_rpc_unavailable`), or ledger view not ready"
-  "/v1/accounts/{id}/tickets":
-    get:
-      tags:
-        - Account
-      summary: Account withdrawal tickets
-      description: "All withdrawal tickets of the account (amount, asset, custody group, cancellation plan); `groups` gives each group's root acceptance progress. On-chain status and reservation time are read on the custody chain from `CustodyVault.ticketTerminal` and `TicketReserved` (see each ticket's `chain`); payment comes no earlier than reservation + `ordinaryPaymentWaitMs`."
-      operationId: v1_account_tickets
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Account id (decimal u32)
-      responses:
-        "200":
-          description: Ticket list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  accountId:
-                    type: integer
-                  tickets:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        ticketId:
-                          type: string
-                        custodyKeyHash:
-                          type: string
-                        assetId:
-                          type: integer
-                        assetVersion:
-                          type: string
-                          description: Decimal string
-                        debitRaw:
-                          type: string
-                        payloadHash:
-                          type: string
-                        cancelPlanned:
-                          type: boolean
-                        cancelId:
-                          type:
-                            - string
-                            - "null"
-                        ledgerStatus:
-                          type: string
-                        chain:
-                          type: object
-                  groups:
-                    type: array
-                    items:
-                      type: object
-                required:
-                  - accountId
-                  - tickets
-                  - groups
-        "400":
-          description: "Malformed path parameter (`invalid_account_id`)"
-        "404":
-          description: "Not found (`unknown_account`)"
-        "503":
-          description: "Ledger read view not ready; retry later"
-  "/v1/accounts/{id}/funds-history":
-    get:
-      tags:
-        - Account
-      summary: Account funds history
-      description: |-
-        Deposit, refund and withdrawal events of an account; paging as in `/v1/events`.
-
-        - Kinds: `CashDepositCredited`, `DepositRefundPlanned`, `DepositRefundAccounted`, `CashWithdrawalReserved`, `CashWithdrawalCancelPlanned`, `CashWithdrawalAccounted`, `CashWithdrawalCancelled`, `EscapeClaimAccounted`.
-        - Refund plans carry `refund{status, reason}`; reserved withdrawals carry `ticket` checkpoint progress, with `estimatedPayableAtMs` an estimate (exact: `TicketReserved` block time).
-      operationId: v1_account_funds_history
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Account id (decimal)
-        - name: after
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-            description: "Event id `<seq>-<sub>-<idx>`; same as the backfill cursor and the `id` in WebSocket frames"
-          description: "Cursor: `next` from the previous page"
-        - name: epoch
-          in: query
-          required: false
-          schema:
-            type: string
-          description: "Ledger epoch from the first page; required with `upper` when `after` is set (409 `history_epoch_mismatch` if the ledger was reset)"
-        - name: upper
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: "^[0-9]+-[0-9]+-[0-9]+$"
-          description: "Fixed upper bound from the first page; required with `epoch` when `after` is set, else 400. Past this replica's complete history: 400 `GatewayHistoryIncomplete`, retry later"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 200
-          description: Page size
-      responses:
-        "200":
-          description: One page of funds history
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  accountId:
-                    type: integer
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        kind:
-                          type: string
-                        data:
-                          type: object
-                        ts: {}
-                        refund:
-                          type: object
-                        ticket:
-                          type: object
-                  groups:
-                    type: array
-                    items:
-                      type: object
-                required:
-                  - accountId
-                  - items
-        "400":
-          description: Malformed path or query parameter
-        "404":
-          description: "Account not found (`unknown_account`)"
-        "503":
-          description: "Ledger state not yet available on this node; retry later"
   "/v1/custody/{key}/deposit-precheck":
     get:
       tags:
@@ -3865,17 +2833,8 @@ paths:
               schema:
                 type: object
                 required:
-                  - ledgerEpoch
                   - groups
                 properties:
-                  networkId:
-                    type: string
-                  genesisHash:
-                    type: string
-                  ledgerEpoch:
-                    type: string
-                  manifestHash:
-                    type: string
                   groups:
                     type: array
                     items:
@@ -4418,7 +3377,6 @@ components:
     Account:
       type: object
       required:
-        - epoch
         - asOfSeq
         - token
         - collateral
@@ -4728,9 +3686,6 @@ components:
           type: integer
           format: int64
           description: Unix ms
-        epoch:
-          type: string
-          description: "Ledger epoch of the risk view; changes only on node restart / reset"
         asOfSeq:
           type: integer
           format: uint64
@@ -4739,7 +3694,6 @@ components:
       type: object
       description: "Perpetual PnL per risk group at one watermark, decimal strings in the group's collateral token; `equity = netInflow + spotTransfer + totalPnl` holds exactly. Spot trades and spot fees count as `spotTransfer`, not PnL"
       required:
-        - epoch
         - asOfSeq
         - groups
       properties:
@@ -4752,9 +3706,6 @@ components:
         vault:
           type: integer
           description: "Present instead of `address` / `subaccount` when the request named a vault (`vault=<id>`)"
-        epoch:
-          type: string
-          description: Ledger epoch
         asOfSeq:
           type: integer
           format: uint64
@@ -5883,8 +4834,6 @@ components:
         vault:
           type: integer
           description: "Replaces `address` / `subaccount` when the request named a `vault`"
-        epoch:
-          type: string
         upper:
           type: string
         entries:
@@ -5930,14 +4879,9 @@ components:
         - openInterest
         - openInterestCap
         - dex
-        - dexCode
         - fees
-        - tags
-        - priceSource
         - aggTicks
         - subticksPerTick
-        - tradingRulesVersion
-        - tickChangePending
       properties:
         symbol:
           type:
@@ -6111,19 +5055,10 @@ components:
         dex:
           type: integer
           description: "Dex the market belongs to (every dex is registered; there is no dex 0)"
-        dexCode:
-          type: string
-          description: "Ledger short name of the dex this market belongs to (the `code` of `/v1/dexes`): every symbol of a dex with a short name is `<dexCode>:BASE-QUOTE`. Platform markets carry the platform dex short name like any other."
         fees:
           type: object
-          description: "For orders without builder attribution. `rateSource`: `market` = legacy, `default` = platform default, `tier` = genesis base rates. Account rates: `GET /v1/account`. Deployer / builder rates: added on attributed orders"
+          description: "The market's taker / maker rates. Your account's rates: `GET /v1/account`."
           properties:
-            rateSource:
-              type: string
-              enum:
-                - market
-                - default
-                - tier
             takerRate:
               type: string
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
@@ -6132,64 +5067,6 @@ components:
               type: string
               pattern: "^-?[0-9]+(\\.[0-9]+)?$"
               description: "Negative = rebate; platform default (`rateSource=default`) or genesis base rate (`tier`)"
-            deployerRate:
-              type: string
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: Decimal string
-            deployerMakerRate:
-              type: string
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: Deployer fee charged to the maker, decimal string
-            builderRate:
-              type: string
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "Decimal string. With the builder model on: the **cap** on each builder's own rates (unset = 0); before that: the flat rate on attributed taker fills"
-            pendingDeployerRate:
-              type:
-                - string
-                - "null"
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "Decimal string. Pending taker deployer rate, effective at `pendingEffectiveAtMs` (7 days after a raise). Cuts and a market's first rate before any trading apply at once; a change raising neither cancels it. `null` = none"
-            pendingDeployerMakerRate:
-              type:
-                - string
-                - "null"
-              pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-              description: "Decimal string; maker leg of `pendingDeployerRate`; `null` = nothing pending"
-            pendingEffectiveAtMs:
-              type:
-                - integer
-                - "null"
-              format: int64
-              description: "Certified Unix ms when `pendingDeployerRate` takes effect; `null` = nothing pending"
-        platformLocked:
-          type: boolean
-          description: "`true` while the Council locks this merchant market: the dex owner and its API wallets cannot change its status. Always `false` on a Council-owned dex"
-        tags:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9-]{1,24}$"
-          maxItems: 8
-          description: "Category codes of the market's dex, in set order; display names in `GET /v1/dexes/{id}`. Display only"
-        priceSource:
-          type:
-            - array
-            - "null"
-          items:
-            type: object
-            required:
-              - source
-              - symbol
-            properties:
-              source:
-                type: string
-                description: "Price source name (`coinbase`, `binance`, `kraken`, `okx`, `hyperliquid`, `hyperliquid-testnet`)"
-              symbol:
-                type: string
-                description: "The source's own ticker, used verbatim"
-          maxItems: 8
-          description: "Price sources bound to this perpetual; the oracle price is their median. `null` = no binding (derived from the symbol); always `null` for spot"
         aggTicks:
           type:
             - array
@@ -6212,13 +5089,6 @@ components:
           minimum: 1
           maximum: 4294967295
           description: "Price increment in base price units; `tickSize` = this × 10^-`priceDecimals`"
-        tradingRulesVersion:
-          type: string
-          pattern: "^(0|[1-9][0-9]*)$"
-          description: "Monotonic trading-rules revision: +1 when a change goes pending, +1 when its result (even a failure) is confirmed. Decimal string"
-        tickChangePending:
-          type: boolean
-          description: "While `true`, new orders are blocked; cancels still work"
     MyVaultPosition:
       type: object
       properties:
@@ -6589,7 +5459,6 @@ components:
       required:
         - address
         - subaccount
-        - epoch
         - period
         - bucketMs
         - fromMs
@@ -6604,9 +5473,6 @@ components:
           type: string
         subaccount:
           type: integer
-        epoch:
-          type: string
-          description: "Ledger epoch; a new epoch starts a new series"
         period:
           type: string
           enum:
@@ -7029,10 +5895,8 @@ components:
         - totalShares
         - lpBalance
         - managerBalance
-        - lastCheckedEquity
         - hwm
         - equity
-        - unattributed
         - totalDeposits
         - pnl
         - managerPortionPpm
@@ -7127,10 +5991,6 @@ components:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
           description: Balance attributed to the manager class, USDC
-        lastCheckedEquity:
-          type: string
-          pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-          description: Equity at the last ledger sync, USDC
         hwm:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
@@ -7139,10 +5999,6 @@ components:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
           description: Vault equity (main account net collateral), USDC
-        unattributed:
-          type: string
-          pattern: "^-?[0-9]+(\\.[0-9]+)?$"
-          description: "`equity − lpBalance − managerBalance` (PnL not yet synced into the classes), USDC"
         totalDeposits:
           type: string
           pattern: "^-?[0-9]+(\\.[0-9]+)?$"
@@ -7557,24 +6413,7 @@ components:
         - executionKnown
         - nonceConsumed
         - duplicate
-        - networkId
-        - genesisHash
-        - manifestHash
-        - ledgerEpoch
       properties:
-        networkId:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        genesisHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        manifestHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        ledgerEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "Ledger epoch; decimal string"
         status:
           type: string
           enum:
@@ -7617,36 +6456,12 @@ components:
     RequestFact:
       type: object
       required:
-        - networkId
-        - genesisHash
-        - manifestHash
-        - ledgerEpoch
         - requestId
         - status
         - executionKnown
         - nonceConsumed
-        - historyComplete
-        - certification
-        - anchor
-        - position
         - digest
-        - inputSeq
-        - hostLogIndex
-        - inputPrefix
       properties:
-        networkId:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        genesisHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        manifestHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        ledgerEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "Ledger epoch; decimal string"
         requestId:
           type: string
           pattern: "^0x[0-9a-f]{64}$"
@@ -7666,55 +6481,6 @@ components:
         nonceConsumed:
           type: boolean
           nullable: true
-        historyComplete:
-          type: boolean
-          enum:
-            - false
-        certification:
-          nullable: true
-          enum:
-            - null
-          type: object
-        anchor:
-          nullable: true
-          enum:
-            - null
-          type: object
-        position:
-          type: object
-          nullable: true
-          required:
-            - inputSeq
-            - hostLogIndex
-            - commandOrdinal
-            - relayOrdinal
-          properties:
-            inputSeq:
-              type: string
-              pattern: "^[0-9]+$"
-              description: Decimal string
-            hostLogIndex:
-              type: string
-              pattern: "^[0-9]+$"
-              description: Decimal string
-            commandOrdinal:
-              type: integer
-              minimum: 0
-            relayOrdinal:
-              type: integer
-              nullable: true
-              minimum: 0
-        inputSeq:
-          type: string
-          pattern: "^[0-9]+$"
-          description: Decimal string
-        hostLogIndex:
-          type: string
-          pattern: "^[0-9]+$"
-          description: Decimal string
-        inputPrefix:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
         source:
           type: string
           enum:
@@ -7742,34 +6508,6 @@ components:
           type: integer
           minimum: 0
           maximum: 255
-        resultDigest:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        accountId:
-          type: integer
-          minimum: 0
-        policyId:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "Policy id; decimal string"
-        policyHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        certificateHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        setEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: Decimal string
-        globalSequence:
-          type: string
-          pattern: "^[0-9]+$"
-          description: Decimal string
-        timestampMs:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "Unix ms; decimal string"
         error:
           type: string
     CommandError:
@@ -8410,152 +7148,11 @@ components:
     MarketLedger:
       type: object
       description: Ledger spec of a market, read from the same ledger snapshot as the top-level snapshot fields
-      required:
-        - signingMarketId
-        - dex
-        - baseSymbol
-        - marketSpecVersion
-        - assetVersion
-        - priceDecimals
-        - sizeDecimals
-        - quotePerTickLot
-        - admission
-        - admissionVersion
-        - oracleStale
-        - oraclePriceAtMs
-        - oraclePolicy
-        - platformLock
-        - accountOwned
-      properties:
-        signingMarketId:
-          type: integer
-          description: "Market id, the same as `signingMarketId` of the catalog row"
-        dex:
-          type: integer
-        baseSymbol:
-          type:
-            - string
-            - "null"
-          description: "Perpetual name (1-16 uppercase letters and digits); null for spot and v1 specs"
-        marketSpecVersion:
-          type: string
-        assetVersion:
-          type: string
-        priceDecimals:
-          type: integer
-        sizeDecimals:
-          type: integer
-        quotePerTickLot:
-          type: string
-        admission:
-          type: integer
-        admissionVersion:
-          type: string
-        oracleStale:
-          type: boolean
-          description: "Oracle-stale flag; a perpetual listed without an enabled test policy is stale until its first effective round"
-        oraclePriceAtMs:
-          type: string
-          description: "Block time of the last effective oracle price, ms; 0 = never"
-        oraclePolicy:
-          type:
-            - object
-            - "null"
-          description: "Current oracle policy; null for spot and markets without one"
-          required:
-            - version
-            - status
-            - algorithmId
-            - algorithmVersion
-            - feeds
-          properties:
-            version:
-              type: string
-              description: "Policy version; pass as `expectedVersion` when updating the policy"
-            status:
-              type: integer
-              description: "0 draft / 1 enabled / 2 disabled"
-            algorithmId:
-              type: integer
-            algorithmVersion:
-              type: integer
-            feeds:
-              type: array
-              items:
-                type: object
-                required:
-                  - feedId
-                  - feedVersion
-                  - setId
-                  - setEpoch
-                  - feedOwner
-                  - feedDex
-                properties:
-                  feedId:
-                    type: string
-                  feedVersion:
-                    type: string
-                  setId:
-                    type: string
-                  setEpoch:
-                    type: string
-                  feedOwner:
-                    type:
-                      - string
-                      - "null"
-                    enum:
-                      - Protocol
-                      - Dex
-                      - null
-                    description: "Feed owner; null if the feed is not configured"
-                  feedDex:
-                    type:
-                      - integer
-                      - "null"
-                    description: "Owning dex when feedOwner = Dex"
-        platformLock:
-          type:
-            - string
-            - "null"
-          enum:
-            - paused
-            - cancel_only
-            - reduce_only
-            - halted
-            - null
-          description: "Council platform lock tier on this market; null when unlocked"
-        accountOwned:
-          type: boolean
-          description: "The market's dex is owned by an account rather than the Council"
+      properties: {}
     LedgerSnapshot:
       type: object
       description: The published ledger snapshot a ledger read was taken from
-      required:
-        - networkId
-        - genesisHash
-        - ledgerEpoch
-        - manifestHash
-        - inputSeq
-        - hostLogIndex
-      properties:
-        networkId:
-          type: string
-          description: Network id (bytes32, 0x hex)
-        genesisHash:
-          type: string
-          description: Genesis hash (bytes32, 0x hex)
-        ledgerEpoch:
-          type: string
-          description: Ledger epoch, decimal string
-        manifestHash:
-          type: string
-          description: Manifest hash (bytes32, 0x hex)
-        inputSeq:
-          type: string
-          description: Ledger input sequence of the cut, decimal string
-        hostLogIndex:
-          type: string
-          description: Host log index of the cut, decimal string
+      properties: {}
     DexLedgerRow:
       allOf:
         - "$ref": "#/components/schemas/DexRegistration"
@@ -8583,24 +7180,7 @@ components:
         - duplicate
         - businessRejected
         - events
-        - networkId
-        - genesisHash
-        - manifestHash
-        - ledgerEpoch
       properties:
-        networkId:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        genesisHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        manifestHash:
-          type: string
-          pattern: "^0x[0-9a-f]{64}$"
-        ledgerEpoch:
-          type: string
-          pattern: "^[0-9]+$"
-          description: "Ledger epoch; decimal string"
         status:
           type: string
           enum:
