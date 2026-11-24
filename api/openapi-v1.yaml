@@ -1659,7 +1659,7 @@ paths:
       tags:
         - Market data
       summary: Fee schedule
-      description: "The standard liquidity-tier table; account rates are in `GET /v1/account`, market overrides in `GET /v1/markets`. A dex deployer may use only `dexSelectableTiers` in `RegisterDexAsset`; others fail with `UnknownLiquidityTier`."
+      description: "The standard liquidity-tier table; account rates are in `GET /v1/account`, market overrides in `GET /v1/markets`. A dex deployer picks a tier from `dexSelectableTiers` in `RegisterDexAsset`; a tier the ledger does not allow fails with `UnknownLiquidityTier`."
       operationId: v1_fees
       parameters: []
       responses:
@@ -1697,7 +1697,7 @@ paths:
                               description: "`1e6 / initialMarginPpm`, display only"
                             dexSelectable:
                               type: boolean
-                              description: "Deployer may pick this tier in `RegisterDexAsset`"
+                              description: "Offered to a deployer in `RegisterDexAsset`; a tier with the same parameters as `defaultTier` is offered only as `defaultTier`"
                       defaultTier:
                         type: integer
                         description: "7 = `IML_5x`; also used when `RegisterDexAsset` names none"
@@ -1705,7 +1705,7 @@ paths:
                         type: array
                         items:
                           type: integer
-                        description: Tiers a deployer may pick, ascending
+                        description: "Tiers offered to a deployer, ascending; no two share the same parameters"
                   note:
                     type: string
   /v1/markets:

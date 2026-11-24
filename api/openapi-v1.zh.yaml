@@ -1657,7 +1657,7 @@ paths:
       tags:
         - Market data
       summary: "费率表"
-      description: "标准流动性档位表；账户费率见 `GET /v1/account`，市场级覆盖见 `GET /v1/markets`。交易所部署者在 `RegisterDexAsset` 中只能用 `dexSelectableTiers`；其他档位以 `UnknownLiquidityTier` 失败。"
+      description: "标准流动性档位表；账户费率见 `GET /v1/account`，市场级覆盖见 `GET /v1/markets`。交易所部署者在 `RegisterDexAsset` 中从 `dexSelectableTiers` 选档位；账本不允许的档位以 `UnknownLiquidityTier` 失败。"
       operationId: v1_fees
       parameters: []
       responses:
@@ -1695,7 +1695,7 @@ paths:
                               description: "`1e6 / initialMarginPpm`，仅供展示"
                             dexSelectable:
                               type: boolean
-                              description: "部署者可在 `RegisterDexAsset` 中选用此档位"
+                              description: "部署者可在 `RegisterDexAsset` 中选用此档位；与 `defaultTier` 参数相同的档位只以 `defaultTier` 提供"
                       defaultTier:
                         type: integer
                         description: "7 = `IML_5x`；`RegisterDexAsset` 未指定档位时也用它"
@@ -1703,7 +1703,7 @@ paths:
                         type: array
                         items:
                           type: integer
-                        description: "部署者可选的档位，升序"
+                        description: "提供给部署者的档位，升序；任意两档参数都不相同"
                   note:
                     type: string
   /v1/markets:
