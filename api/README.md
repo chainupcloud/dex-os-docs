@@ -11,7 +11,7 @@ GitBook OpenAPI 导入地址：
 - 英文：https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.yaml
 - 中文：https://raw.githubusercontent.com/chainupcloud/dex-os-docs/main/api/openapi-v1.zh.yaml
 
-API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi 块，不另写摘要（块自带标题）。规格里的接口全部生成页面；不该对外的接口在上游规格里删除（dex-os#642、dex-os#819），不在本仓隐藏。特定角色与进阶用法的接口（builder 与 DEX 部署方、账本账户与授权、自托管与提款追踪、事件补数与异步结果）不按 tag 分页，由 `scripts/gen_pages.py` 的 `advanced` 表放进 `content/*/api/advanced/`，在目录里单独一节。
+API 参考页每个接口一节：二级标题 `METHOD path` 加一个 openapi 块，不另写摘要（块自带标题）。规格里的接口全部生成页面；不该对外的接口在上游规格里删除（dex-os#642、dex-os#819、dex-os builder 与 DEX 部署方读接口），不在本仓隐藏。进阶用法的接口（账本账户与授权、自托管与提款追踪、事件补数与异步结果）不按 tag 分页，由 `scripts/gen_pages.py` 的 `advanced` 表放进 `content/*/api/advanced/`，在目录里单独一节。
 
 正文中的 API 块固定引用本仓某个提交的规格，避免预览和回滚时读取不同版本；上方 main 地址用于 GitBook 手动导入最新发布副本。
 

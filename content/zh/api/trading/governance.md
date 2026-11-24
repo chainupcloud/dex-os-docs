@@ -141,7 +141,7 @@
 
 下面这些命令要多方参与，没有单人签名的示例，调试台里也没有：
 
-- `RegisterDexV2`、`AcceptDexOwner`、`RegisterBuilder`、`RegisterBuilderLinked`：注册时需要所有者、收款账户、关联方各自确认，请用 SDK 构造。读接口见[Builder 与 DEX 部署方](../advanced/builders.md)。
+- `RegisterDexV2`、`AcceptDexOwner`、`RegisterBuilder`、`RegisterBuilderLinked`：注册时需要所有者、收款账户、关联方各自确认，请用 SDK 构造。
 - `Propose`、`SubmitAndExecute`、`ExecuteProposal`、`CancelProposal`、`FreezeMarket`、`ReleaseMarketLock`、`PauseTimeSet`、`RestorePausedTimeSet`：由理事会成员用理事会自己的工具签名提交，不在本参考范围内。
 
 ## 用 SDK 构造

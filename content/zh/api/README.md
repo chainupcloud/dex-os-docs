@@ -15,9 +15,8 @@
 - [资金](funds.md)
 - [交易](trading.md)
 
-Builder 与进阶 API（给 builder 与 DEX 部署方、SDK 作者、多签账户，以及自托管与提款追踪）：
+进阶 API（给 SDK 作者、多签账户，以及自托管与提款追踪）：
 
-- [Builder 与 DEX 部署方](advanced/builders.md)
 - [账本账户与授权](advanced/ledger-accounts.md)
 - [自托管与提款追踪](advanced/self-custody.md)
 - [事件补数与异步结果](advanced/backfill.md)
