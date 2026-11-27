@@ -9,6 +9,7 @@
 - [保证金与资金费](guides/margin-and-funding.md)
 - [金库](guides/vaults.md)
 - [入金与提款](guides/deposits-and-withdrawals.md)
+- [逃生说明](guides/escape.md)
 
 ## 开发者指南
 
