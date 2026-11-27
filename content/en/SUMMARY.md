@@ -9,6 +9,7 @@
 - [Margin and funding](guides/margin-and-funding.md)
 - [Vaults](guides/vaults.md)
 - [Deposits and withdrawals](guides/deposits-and-withdrawals.md)
+- [Escape guide](guides/escape.md)
 
 ## Developer guides
 
